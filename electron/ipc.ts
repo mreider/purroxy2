@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { store } from './store'
 import { getAllSites, createSite, saveSession, deleteSite } from './sites'
+import { getAllCapabilities, getCapabilitiesForSite, createCapability, deleteCapability, updateCapability } from './capabilities'
 
 export function setupIPC() {
   // Settings
@@ -34,5 +35,27 @@ export function setupIPC() {
   ipcMain.handle('sites:delete', (_event, id: string) => {
     deleteSite(id)
     return true
+  })
+
+  // Capabilities
+  ipcMain.handle('capabilities:getAll', () => {
+    return getAllCapabilities()
+  })
+
+  ipcMain.handle('capabilities:getForSite', (_event, siteProfileId: string) => {
+    return getCapabilitiesForSite(siteProfileId)
+  })
+
+  ipcMain.handle('capabilities:create', (_event, data: any) => {
+    return createCapability(data)
+  })
+
+  ipcMain.handle('capabilities:delete', (_event, id: string) => {
+    deleteCapability(id)
+    return true
+  })
+
+  ipcMain.handle('capabilities:update', (_event, id: string, updates: any) => {
+    return updateCapability(id, updates)
   })
 }

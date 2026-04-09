@@ -53,7 +53,9 @@ contextBridge.exposeInMainWorld('purroxy', {
   ai: {
     getPageContent: () => ipcRenderer.invoke('ai:getPageContent'),
     chat: (messages: Array<{ role: string; content: string }>, pageContext?: string) =>
-      ipcRenderer.invoke('ai:chat', messages, pageContext)
+      ipcRenderer.invoke('ai:chat', messages, pageContext),
+    generateCapability: (actions: unknown[], chatHistory: Array<{ role: string; content: string }>) =>
+      ipcRenderer.invoke('ai:generateCapability', actions, chatHistory)
   },
   sites: {
     getAll: () => ipcRenderer.invoke('sites:getAll'),
@@ -62,5 +64,12 @@ contextBridge.exposeInMainWorld('purroxy', {
     saveSession: (siteId: string, session: unknown) =>
       ipcRenderer.invoke('sites:saveSession', siteId, session),
     delete: (id: string) => ipcRenderer.invoke('sites:delete', id)
+  },
+  capabilities: {
+    getAll: () => ipcRenderer.invoke('capabilities:getAll'),
+    getForSite: (siteProfileId: string) => ipcRenderer.invoke('capabilities:getForSite', siteProfileId),
+    create: (data: unknown) => ipcRenderer.invoke('capabilities:create', data),
+    delete: (id: string) => ipcRenderer.invoke('capabilities:delete', id),
+    update: (id: string, updates: unknown) => ipcRenderer.invoke('capabilities:update', id, updates)
   }
 })

@@ -39,6 +39,26 @@ export function getSiteByHostname(hostname: string): SiteProfile | undefined {
   return getAllSites().find((s) => s.hostname === hostname)
 }
 
+function friendlyHostname(hostname: string): string {
+  // Turn "bluezoneexperience.guestyowners.com" into "Guesty Owners (bluezoneexperience)"
+  // Turn "mail.google.com" into "Google Mail"
+  // Turn "github.com" into "GitHub"
+  const parts = hostname.replace(/^www\./, '').split('.')
+  // Remove TLD
+  if (parts.length > 1) parts.pop()
+
+  if (parts.length >= 2) {
+    // subdomain.domain format
+    const domain = parts[parts.length - 1]
+    const subdomain = parts.slice(0, -1).join('.')
+    // Capitalize and humanize
+    const domainName = domain.charAt(0).toUpperCase() + domain.slice(1)
+    return `${domainName} (${subdomain})`
+  }
+  // Single part — just capitalize
+  return parts[0].charAt(0).toUpperCase() + parts[0].slice(1)
+}
+
 export function createSite(url: string, name: string, faviconUrl: string): SiteProfile {
   const hostname = new URL(url.includes('://') ? url : 'https://' + url).hostname
   const existing = getSiteByHostname(hostname)
@@ -48,7 +68,7 @@ export function createSite(url: string, name: string, faviconUrl: string): SiteP
     id: randomUUID(),
     url,
     hostname,
-    name: name || hostname,
+    name: friendlyHostname(hostname),
     faviconUrl,
     sessionEncrypted: null,
     createdAt: new Date().toISOString(),

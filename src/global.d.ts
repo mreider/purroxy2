@@ -43,6 +43,40 @@ interface RecordedAction {
   sensitive?: boolean
 }
 
+interface CapabilityParameter {
+  name: string
+  description: string
+  actionIndex: number
+  field: 'value' | 'url'
+  defaultValue: string
+  required: boolean
+}
+
+interface CapabilityExtractionRule {
+  name: string
+  selector: string
+  attribute: string
+  multiple: boolean
+  sensitive: boolean
+}
+
+interface CapabilityData {
+  id: string
+  siteProfileId: string
+  name: string
+  description: string
+  actions: RecordedAction[]
+  parameters: CapabilityParameter[]
+  extractionRules: CapabilityExtractionRule[]
+  preferredEngine: string
+  healthStatus: string
+  consecutiveFailures: number
+  lastRunAt: string | null
+  lastSuccessAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 interface PurroxyAPI {
   platform: string
   versions: {
@@ -74,6 +108,8 @@ interface PurroxyAPI {
     getPageContent: () => Promise<string>
     chat: (messages: Array<{ role: string; content: string }>, pageContext?: string) =>
       Promise<{ content?: string; error?: string }>
+    generateCapability: (actions: unknown[], chatHistory: Array<{ role: string; content: string }>) =>
+      Promise<{ capability?: { name: string; description: string; parameters: CapabilityParameter[]; extractionRules: CapabilityExtractionRule[] }; error?: string }>
   }
   recorder: {
     start: () => Promise<boolean>
@@ -86,6 +122,13 @@ interface PurroxyAPI {
     create: (url: string, name: string, faviconUrl: string) => Promise<SiteProfile>
     saveSession: (siteId: string, session: SessionData) => Promise<boolean>
     delete: (id: string) => Promise<boolean>
+  }
+  capabilities: {
+    getAll: () => Promise<CapabilityData[]>
+    getForSite: (siteProfileId: string) => Promise<CapabilityData[]>
+    create: (data: unknown) => Promise<CapabilityData>
+    delete: (id: string) => Promise<boolean>
+    update: (id: string, updates: unknown) => Promise<CapabilityData | undefined>
   }
 }
 

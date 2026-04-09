@@ -67,7 +67,7 @@ export default function Builder() {
     const timer = setTimeout(async () => {
       if (autoAnalyzed) return
       setAutoAnalyzed(true)
-      await sendAIMessage('Analyze this page and suggest capabilities I could build.')
+      await sendAIMessage('Check this page. If it requires login, tell me to log in and show the Done button. If I\'m already logged in, suggest capabilities I could build.')
     }, 1500)
     return () => clearTimeout(timer)
   }, [browserOpen, loading, autoAnalyzed])
@@ -162,17 +162,67 @@ export default function Builder() {
   }
 
   const handleSaveCapability = async () => {
-    // For now, save as a site capability
+    // Get or create site profile
     const pageInfo = await window.purroxy.browser.getPageInfo()
     if (!pageInfo) return
+
     const site = await window.purroxy.sites.create(pageInfo.url, pageInfo.title, pageInfo.faviconUrl)
-    // TODO: In Phase 7 we'll save the actual capability with actions/params
+
+    // Show saving status
+    setChatMessages(prev => [...prev, {
+      role: 'system',
+      content: 'Analyzing your recording and generating capability definition...'
+    }])
+    setChatLoading(true)
+
+    // AI generates structured capability from recorded actions + chat context
+    const chatContext = chatMessages
+      .filter(m => !m.hidden)
+      .map(m => ({ role: m.role, content: m.content }))
+
+    const result = await window.purroxy.ai.generateCapability(actionsRef.current, chatContext)
+
+    if (result.error) {
+      setChatMessages(prev => [...prev, { role: 'assistant', content: `Failed to save: ${result.error}` }])
+      setChatLoading(false)
+      return
+    }
+
+    const cap = result.capability!
+
+    // Save the capability
+    const saved = await window.purroxy.capabilities.create({
+      siteProfileId: site.id,
+      name: cap.name,
+      description: cap.description,
+      actions: actionsRef.current,
+      parameters: cap.parameters,
+      extractionRules: cap.extractionRules
+    })
+
     setCapabilitySaved(true)
-    await sendAIMessage('[Capability saved successfully.]', { isSystem: true, hidden: true })
+    setChatLoading(false)
+
+    // Show summary
+    const paramList = cap.parameters.length > 0
+      ? cap.parameters.map(p => `- **${p.name}**: ${p.description}`).join('\n')
+      : '- None (all values are fixed)'
+
+    const extractList = cap.extractionRules.length > 0
+      ? cap.extractionRules.map(e => `- **${e.name}**${e.sensitive ? ' (sensitive)' : ''}`).join('\n')
+      : '- None defined'
+
+    setChatMessages(prev => [...prev, {
+      role: 'assistant',
+      content: `**"${cap.name}"** saved!\n\n${cap.description}\n\n**Parameters** (vary each run):\n${paramList}\n\n**Data extracted**:\n${extractList}\n\nThis capability is now in your Library and ready to use.\n\n{{BUILD_ANOTHER}}`
+    }])
   }
 
-  const handleKeepGoing = async () => {
-    await sendAIMessage('What else could I build on this site?')
+  const handleBuildAnother = async () => {
+    setActions([])
+    setCapabilitySaved(false)
+    setClickedButtons(new Set())
+    await sendAIMessage('I want to build another capability on this site. What do you suggest?')
   }
 
   const handleClose = async () => {
@@ -236,7 +286,7 @@ export default function Builder() {
             onStopRecording={handleStopRecording}
             onSaveSession={handleSaveSession}
             onSaveCapability={handleSaveCapability}
-            onKeepGoing={handleKeepGoing}
+            onBuildAnother={handleBuildAnother}
           />
         ) : (
           <RecordingPanel isRecording={isRecording} actions={actions} onStart={handleStartRecording} onStop={handleStopRecording} />
@@ -248,7 +298,7 @@ export default function Builder() {
 
 /* ============ Chat Panel ============ */
 
-function ChatPanel({ messages, loading, input, onInputChange, onSend, isRecording, sessionSaved, capabilitySaved, clickedButtons, onButtonClick, onStartRecording, onStopRecording, onSaveSession, onSaveCapability, onKeepGoing }: {
+function ChatPanel({ messages, loading, input, onInputChange, onSend, isRecording, sessionSaved, capabilitySaved, clickedButtons, onButtonClick, onStartRecording, onStopRecording, onSaveSession, onSaveCapability, onBuildAnother }: {
   messages: ChatMessage[]
   loading: boolean
   input: string
@@ -263,7 +313,7 @@ function ChatPanel({ messages, loading, input, onInputChange, onSend, isRecordin
   onStopRecording: () => Promise<void>
   onSaveSession: () => Promise<void>
   onSaveCapability: () => Promise<void>
-  onKeepGoing: () => Promise<void>
+  onBuildAnother: () => Promise<void>
 }) {
   const endRef = useRef<HTMLDivElement>(null)
 
@@ -300,12 +350,12 @@ function ChatPanel({ messages, loading, input, onInputChange, onSend, isRecordin
         </button>
       )
     }
-    if (type === 'SAVE_SESSION') {
+    if (type === 'SAVE_SESSION' || type === 'DONE') {
       if (wasClicked || sessionSaved) return null
       return (
         <button key={`btn-${key}-${partIndex}`} onClick={async () => { onButtonClick(key); await onSaveSession() }}
           className="my-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-accent hover:bg-accent-light text-white text-xs font-medium transition-colors">
-          <Save size={12} /> Save Session
+          <ShieldCheck size={12} /> Done
         </button>
       )
     }
@@ -318,12 +368,12 @@ function ChatPanel({ messages, loading, input, onInputChange, onSend, isRecordin
         </button>
       )
     }
-    if (type === 'KEEP_GOING') {
+    if (type === 'BUILD_ANOTHER') {
       if (wasClicked) return null
       return (
-        <button key={`btn-${key}-${partIndex}`} onClick={async () => { onButtonClick(key); await onKeepGoing() }}
-          className="my-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-gray-600 dark:text-gray-300 text-xs font-medium transition-colors">
-          <ChevronRight size={12} /> Keep Going
+        <button key={`btn-${key}-${partIndex}`} onClick={async () => { onButtonClick(key); await onBuildAnother() }}
+          className="my-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-accent hover:bg-accent-light text-white text-xs font-medium transition-colors">
+          <ChevronRight size={12} /> Build Another Capability
         </button>
       )
     }
@@ -331,7 +381,7 @@ function ChatPanel({ messages, loading, input, onInputChange, onSend, isRecordin
   }
 
   const renderContent = (content: string, msgIndex: number) => {
-    const parts = content.split(/({{START_RECORDING}}|{{STOP_RECORDING}}|{{SAVE_SESSION}}|{{SAVE_CAPABILITY}}|{{KEEP_GOING}})/)
+    const parts = content.split(/({{START_RECORDING}}|{{STOP_RECORDING}}|{{SAVE_SESSION}}|{{DONE}}|{{SAVE_CAPABILITY}}|{{BUILD_ANOTHER}})/)
 
     return parts.map((part, i) => {
       const match = part.match(/^{{(\w+)}}$/)
