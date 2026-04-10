@@ -38,7 +38,14 @@ function createWindow() {
     if (!app.isQuitting) {
       e.preventDefault()
       mainWindow?.hide()
+      // Hide from dock on macOS — tray icon stays
+      if (process.platform === 'darwin') app.dock.hide()
     }
+  })
+
+  mainWindow.on('show', () => {
+    // Show in dock again when window is visible
+    if (process.platform === 'darwin') app.dock.show()
   })
 
   mainWindow.on('closed', () => {

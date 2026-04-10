@@ -80,10 +80,14 @@ export class PlaywrightEngine {
     try {
       const resolvedActions = this.substituteParams(actions, parameters, paramValues)
 
+      // Optimize: remove wait actions and deduplicate consecutive navigations
+      const optimized = this.optimizeActions(resolvedActions)
+      this.addLog(`Optimized: ${resolvedActions.length} actions → ${optimized.length} (removed waits + duplicate navs)`)
+
       let failedSteps = 0
-      for (let i = 0; i < resolvedActions.length; i++) {
-        const action = resolvedActions[i]
-        this.addLog(`Step ${i + 1}/${resolvedActions.length}: ${action.type} ${action.selector || action.url || ''} ${action.label ? '(' + action.label + ')' : ''}`.trim())
+      for (let i = 0; i < optimized.length; i++) {
+        const action = optimized[i]
+        this.addLog(`Step ${i + 1}/${optimized.length}: ${action.type} ${action.selector || action.url || ''} ${action.label ? '(' + action.label + ')' : ''}`.trim())
 
         try {
           await this.executeAction(action)
@@ -91,14 +95,12 @@ export class PlaywrightEngine {
         } catch (err: any) {
           failedSteps++
           this.addLog(`  -> FAILED (skipping): ${err.message}`)
-          // Continue with remaining actions instead of stopping
         }
       }
 
-      this.addLog(`Completed: ${resolvedActions.length - failedSteps}/${resolvedActions.length} actions succeeded`)
+      this.addLog(`Completed: ${optimized.length - failedSteps}/${optimized.length} actions succeeded`)
       this.addLog('Waiting for page to settle...')
-      await this.page.waitForLoadState('networkidle').catch(() => {})
-      await this.page.waitForTimeout(1000)
+      await this.page.waitForTimeout(1500)
 
       const currentUrl = this.page.url()
       this.addLog(`Final URL: ${currentUrl}`)
@@ -197,6 +199,28 @@ export class PlaywrightEngine {
     })
   }
 
+  private optimizeActions(actions: RecordedAction[]): RecordedAction[] {
+    const result: RecordedAction[] = []
+    let lastNavUrl = ''
+
+    for (const action of actions) {
+      // Skip wait actions — page loads naturally during replay
+      if (action.type === 'wait') continue
+
+      // Skip scroll actions with no selector — usually noise
+      if (action.type === 'scroll' && (!action.selector || action.selector === 'window')) continue
+
+      // Skip duplicate consecutive navigations
+      if (action.type === 'navigate' && action.url === lastNavUrl) continue
+
+      if (action.type === 'navigate') lastNavUrl = action.url || ''
+      else lastNavUrl = ''
+
+      result.push(action)
+    }
+    return result
+  }
+
   private async executeAction(action: RecordedAction): Promise<void> {
     if (!this.page) return
 
@@ -220,7 +244,7 @@ export class PlaywrightEngine {
       case 'navigate':
         if (action.url) {
           await this.page.goto(action.url, { waitUntil: 'domcontentloaded' })
-          await this.page.waitForLoadState('networkidle').catch(() => {})
+          await this.page.waitForTimeout(500)
         }
         break
 
