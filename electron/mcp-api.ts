@@ -38,9 +38,16 @@ export function startMCPApi(): number {
               }
             }
 
+            // Generate a clean tool name from the capability name
+            const toolName = 'purroxy_' + cap.name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '_')
+              .replace(/^_|_$/g, '')
+              .slice(0, 40)
+
             return {
-              name: `purroxy_${cap.id.replace(/-/g, '_').slice(0, 20)}`,
-              description: `[${site?.hostname || 'unknown'}] ${cap.name}: ${cap.description}`,
+              name: toolName,
+              description: `${cap.name} (${site?.hostname || 'unknown site'}): ${cap.description}`,
               inputSchema: {
                 type: 'object',
                 properties: params,

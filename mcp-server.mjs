@@ -70,12 +70,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const toolName = request.params.name
   const args = request.params.arguments || {}
-  const capId = toolMap[toolName]
+  let capId = toolMap[toolName]
 
   if (!capId) {
-    return {
-      content: [{ type: 'text', text: `Unknown tool: ${toolName}. Is Purroxy running?` }],
-      isError: true
+    // Tools list might be stale — try refreshing
+    try {
+      const { tools } = await apiCall('/tools')
+      for (const t of tools) toolMap[t.name] = t._capabilityId
+      capId = toolMap[toolName]
+    } catch {}
+
+    if (!capId) {
+      return {
+        content: [{ type: 'text', text: `Tool "${toolName}" not found. Purroxy may not be running, or the capability was deleted. Open Purroxy and check the Library.` }],
+        isError: true
+      }
     }
   }
 

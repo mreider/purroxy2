@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Trash2, ShieldCheck, Globe, ChevronDown, ChevronRight, Zap, Play, Loader2, X, CheckCircle, AlertTriangle, Eye } from 'lucide-react'
+import { Trash2, ShieldCheck, Globe, ChevronDown, ChevronRight, Zap, Play, Loader2, X, CheckCircle, AlertTriangle, Eye, Pencil } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 interface TestResult {
   success: boolean
@@ -11,21 +12,37 @@ interface TestResult {
 }
 
 export default function Library() {
+  const navigate = useNavigate()
   const [sites, setSites] = useState<SiteProfile[]>([])
   const [capabilities, setCapabilities] = useState<CapabilityData[]>([])
   const [expandedSites, setExpandedSites] = useState<Set<string>>(new Set())
   const [loaded, setLoaded] = useState(false)
-  const [testing, setTesting] = useState<string | null>(null) // capabilityId being tested
+  const [testing, setTesting] = useState<string | null>(null)
   const [testResult, setTestResult] = useState<{ capId: string; result: TestResult } | null>(null)
+  const [renaming, setRenaming] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
 
   const loadData = async () => {
     const [allSites, allCaps] = await Promise.all([
       window.purroxy.sites.getAll(),
       window.purroxy.capabilities.getAll()
     ])
+
+    // Auto-cleanup: remove capabilities whose site no longer exists
+    const siteIds = new Set(allSites.map(s => s.id))
+    const validCaps = allCaps.filter(c => siteIds.has(c.siteProfileId))
+    const orphaned = allCaps.length - validCaps.length
+    if (orphaned > 0) {
+      for (const cap of allCaps) {
+        if (!siteIds.has(cap.siteProfileId)) {
+          await window.purroxy.capabilities.delete(cap.id)
+        }
+      }
+    }
+
     setSites(allSites)
-    setCapabilities(allCaps)
-    const withCaps = new Set(allCaps.map(c => c.siteProfileId))
+    setCapabilities(validCaps)
+    const withCaps = new Set(validCaps.map(c => c.siteProfileId))
     setExpandedSites(withCaps)
     setLoaded(true)
   }
@@ -41,6 +58,11 @@ export default function Library() {
   }
 
   const handleDeleteSite = async (id: string) => {
+    // Also delete all capabilities for this site
+    const siteCaps = capabilities.filter(c => c.siteProfileId === id)
+    for (const cap of siteCaps) {
+      await window.purroxy.capabilities.delete(cap.id)
+    }
     await window.purroxy.sites.delete(id)
     loadData()
   }
@@ -57,6 +79,23 @@ export default function Library() {
     const result = await window.purroxy.executor.test(capId, {}, { visible })
     setTestResult({ capId, result })
     setTesting(null)
+  }
+
+  const handleStartRename = (cap: CapabilityData) => {
+    setRenaming(cap.id)
+    setRenameValue(cap.name)
+  }
+
+  const handleRename = async (capId: string) => {
+    if (renameValue.trim()) {
+      await window.purroxy.capabilities.update(capId, { name: renameValue.trim() })
+      setRenaming(null)
+      loadData()
+    }
+  }
+
+  const handleReRecord = (site: SiteProfile) => {
+    navigate(`/builder?url=${encodeURIComponent('https://' + site.hostname)}`)
   }
 
   const capsForSite = (siteId: string) => capabilities.filter(c => c.siteProfileId === siteId)
@@ -103,8 +142,12 @@ export default function Library() {
                     {siteCaps.length > 0 && (
                       <span className="text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded-full">{siteCaps.length}</span>
                     )}
+                    <button onClick={(e) => { e.stopPropagation(); handleReRecord(site) }}
+                      className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-accent transition-colors" title="Build new capability">
+                      <Zap size={12} />
+                    </button>
                     <button onClick={(e) => { e.stopPropagation(); handleDeleteSite(site.id) }}
-                      className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-red-500 transition-colors" title="Delete site">
+                      className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-red-500 transition-colors" title="Delete site and all capabilities">
                       <Trash2 size={12} />
                     </button>
                   </div>
@@ -114,7 +157,13 @@ export default function Library() {
                 {expanded && (
                   <div className="border-t border-black/5 dark:border-white/5">
                     {siteCaps.length === 0 ? (
-                      <p className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">No capabilities yet for this site</p>
+                      <div className="px-4 py-3 flex items-center justify-between">
+                        <p className="text-xs text-gray-400 dark:text-gray-500">No capabilities yet</p>
+                        <button onClick={() => handleReRecord(site)}
+                          className="text-xs text-accent hover:text-accent-light font-medium">
+                          Build one
+                        </button>
+                      </div>
                     ) : (
                       <div className="divide-y divide-black/5 dark:divide-white/5">
                         {siteCaps.map(cap => (
@@ -122,30 +171,47 @@ export default function Library() {
                             <div className="flex items-center gap-3 px-4 py-3 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
                               <Zap size={14} className="text-accent flex-shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{cap.name}</p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{cap.description}</p>
-                                <div className="flex gap-3 mt-1 text-[10px] text-gray-400">
-                                  <span>{cap.actions.length} actions</span>
-                                  <span>{cap.parameters.length} params</span>
-                                  <span className={cap.healthStatus === 'healthy' ? 'text-green-500' : cap.healthStatus === 'degraded' ? 'text-amber-500' : 'text-red-500'}>
-                                    {cap.healthStatus}
-                                  </span>
+                                {renaming === cap.id ? (
+                                  <form onSubmit={(e) => { e.preventDefault(); handleRename(cap.id) }} className="flex gap-1">
+                                    <input type="text" value={renameValue} onChange={e => setRenameValue(e.target.value)} autoFocus
+                                      className="flex-1 px-2 py-0.5 text-sm rounded bg-black/5 dark:bg-white/10 border border-accent/50 focus:outline-none" />
+                                    <button type="submit" className="text-xs text-accent font-medium">Save</button>
+                                    <button type="button" onClick={() => setRenaming(null)} className="text-xs text-gray-400">Cancel</button>
+                                  </form>
+                                ) : (
+                                  <>
+                                    <p className="text-sm font-medium truncate">{cap.name}</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{cap.description}</p>
+                                    <div className="flex gap-3 mt-1 text-[10px] text-gray-400">
+                                      <span>{cap.actions.length} actions</span>
+                                      <span>{cap.parameters.length} params</span>
+                                      <span className={cap.healthStatus === 'healthy' ? 'text-green-500' : cap.healthStatus === 'degraded' ? 'text-amber-500' : 'text-red-500'}>
+                                        {cap.healthStatus}
+                                      </span>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                              {renaming !== cap.id && (
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <button onClick={() => handleStartRename(cap)}
+                                    className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-gray-600 transition-colors" title="Rename">
+                                    <Pencil size={12} />
+                                  </button>
+                                  <button onClick={() => handleTest(cap.id)} disabled={testing === cap.id}
+                                    className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-accent hover:text-accent-light transition-colors disabled:opacity-50" title="Test (headless)">
+                                    {testing === cap.id ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                                  </button>
+                                  <button onClick={() => handleTest(cap.id, true)} disabled={testing === cap.id}
+                                    className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-accent transition-colors disabled:opacity-50" title="Test (visible)">
+                                    <Eye size={14} />
+                                  </button>
+                                  <button onClick={() => handleDeleteCapability(cap.id)}
+                                    className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
+                                    <Trash2 size={12} />
+                                  </button>
                                 </div>
-                              </div>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                <button onClick={() => handleTest(cap.id)} disabled={testing === cap.id}
-                                  className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-accent hover:text-accent-light transition-colors disabled:opacity-50" title="Test (headless)">
-                                  {testing === cap.id ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                                </button>
-                                <button onClick={() => handleTest(cap.id, true)} disabled={testing === cap.id}
-                                  className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-accent transition-colors disabled:opacity-50" title="Test (visible browser)">
-                                  <Eye size={14} />
-                                </button>
-                                <button onClick={() => handleDeleteCapability(cap.id)}
-                                  className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
+                              )}
                             </div>
 
                             {/* Test result */}
@@ -183,7 +249,7 @@ export default function Library() {
                                   <div className="space-y-1">
                                     {(testResult.result.data as any)._pageContent ? (
                                       <>
-                                        <p className="font-medium text-gray-600 dark:text-gray-300 mb-1">Page content (CSS selectors missed, showing raw text):</p>
+                                        <p className="font-medium text-gray-600 dark:text-gray-300 mb-1">Page content:</p>
                                         <div className="selectable text-gray-700 dark:text-gray-300 bg-black/5 dark:bg-white/5 rounded p-2 max-h-48 overflow-auto whitespace-pre-wrap text-[11px]">
                                           {String((testResult.result.data as any)._pageContent).slice(0, 2000)}
                                         </div>
