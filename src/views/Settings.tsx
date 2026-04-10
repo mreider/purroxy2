@@ -53,6 +53,9 @@ export default function Settings() {
     <div className="p-8 max-w-xl">
       <h2 className="text-xl font-semibold mb-6">Settings</h2>
 
+      {/* Account */}
+      <AccountSection />
+
       {/* Claude Desktop Integration */}
       <section className="mb-8">
         <label className="block text-sm font-medium mb-2">Claude Desktop</label>
@@ -148,6 +151,99 @@ export default function Settings() {
         </p>
       </section>
     </div>
+  )
+}
+
+function AccountSection() {
+  const [status, setStatus] = useState<{ loggedIn: boolean; email: string | null; plan: string | null; trialDaysLeft: number | null } | null>(null)
+  const [showAuth, setShowAuth] = useState<'login' | 'signup' | null>(null)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    window.purroxy.account.getStatus().then(setStatus)
+  }, [])
+
+  const handleAuth = async (mode: 'login' | 'signup') => {
+    if (!email.trim() || !password.trim()) return
+    setLoading(true); setError('')
+    const result = mode === 'signup'
+      ? await window.purroxy.account.signup(email, password)
+      : await window.purroxy.account.login(email, password)
+    if (result.error) { setError(result.error) }
+    else { setShowAuth(null); setEmail(''); setPassword(''); window.purroxy.account.getStatus().then(setStatus) }
+    setLoading(false)
+  }
+
+  const handleLogout = async () => {
+    await window.purroxy.account.logout()
+    window.purroxy.account.getStatus().then(setStatus)
+  }
+
+  if (!status) return null
+
+  return (
+    <section className="mb-8">
+      <label className="block text-sm font-medium mb-2">Account</label>
+
+      {status.loggedIn ? (
+        <div className="rounded-lg bg-black/5 dark:bg-white/5 p-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">{status.email}</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {status.plan === 'trial' && status.trialDaysLeft !== null
+                  ? `Trial — ${status.trialDaysLeft} days left`
+                  : status.plan === 'monthly' ? 'Monthly subscription'
+                  : status.plan === 'contributor' ? 'Contributor access'
+                  : status.plan || 'Active'}
+              </p>
+            </div>
+            <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+              Log out
+            </button>
+          </div>
+        </div>
+      ) : showAuth ? (
+        <div className="space-y-2 p-3 rounded-lg border border-accent/30 bg-accent/5">
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" autoFocus
+            className="w-full px-3 py-2 rounded-lg bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50" />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password (8+ chars)"
+            className="w-full px-3 py-2 rounded-lg bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50" />
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => { setShowAuth(null); setError('') }} className="px-3 py-1.5 rounded-lg text-xs text-gray-500">Cancel</button>
+            <button onClick={() => handleAuth(showAuth)} disabled={loading}
+              className="px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-medium hover:bg-accent-light disabled:opacity-40">
+              {loading ? 'Loading...' : showAuth === 'signup' ? 'Create Account' : 'Log In'}
+            </button>
+          </div>
+          <p className="text-xs text-center text-gray-400">
+            {showAuth === 'login' ? (
+              <>No account? <button onClick={() => setShowAuth('signup')} className="text-accent">Sign up</button></>
+            ) : (
+              <>Have an account? <button onClick={() => setShowAuth('login')} className="text-accent">Log in</button></>
+            )}
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-lg bg-black/5 dark:bg-white/5 p-3">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+            Create an account for license management and community features.
+          </p>
+          <div className="flex gap-2">
+            <button onClick={() => setShowAuth('signup')} className="px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-xs font-medium transition-colors">
+              Sign Up
+            </button>
+            <button onClick={() => setShowAuth('login')} className="px-3 py-1.5 rounded-lg bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300 text-xs font-medium hover:bg-black/10 dark:hover:bg-white/15 transition-colors">
+              Log In
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   )
 }
 

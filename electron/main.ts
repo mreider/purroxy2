@@ -9,6 +9,7 @@ import { setupExecutor } from './executor'
 import { startMCPApi } from './mcp-api'
 import { setupVault } from './vault'
 import { setupAppLock } from './app-lock'
+import { setupAccount } from './account'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -73,6 +74,7 @@ app.whenReady().then(() => {
   setupExecutor(mainWindow!)
   setupVault()
   setupAppLock(mainWindow!)
+  setupAccount()
   startMCPApi()
   setupTray(mainWindow!)
 

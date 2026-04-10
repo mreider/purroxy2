@@ -1,0 +1,18 @@
+name = "purroxy-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+TRIAL_DAYS = "14"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "purroxy-db"
+database_id = "TODO_REPLACE_WITH_DATABASE_ID"
+
+# Uncomment when deploying:
+# [env.production]
+# vars = { STRIPE_WEBHOOK_SECRET = "whsec_..." }
+# [env.production.secrets]
+# STRIPE_SECRET_KEY = "sk_live_..."
+# JWT_SECRET = "your-jwt-secret"

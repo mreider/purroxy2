@@ -82,6 +82,13 @@ contextBridge.exposeInMainWorld('purroxy', {
       return () => ipcRenderer.removeListener('executor:status', handler)
     }
   },
+  account: {
+    getStatus: () => ipcRenderer.invoke('account:getStatus'),
+    signup: (email: string, password: string) => ipcRenderer.invoke('account:signup', email, password),
+    login: (email: string, password: string) => ipcRenderer.invoke('account:login', email, password),
+    logout: () => ipcRenderer.invoke('account:logout'),
+    validate: () => ipcRenderer.invoke('account:validate')
+  },
   lock: {
     getConfig: () => ipcRenderer.invoke('lock:getConfig'),
     setPin: (pin: string) => ipcRenderer.invoke('lock:setPin', pin),
