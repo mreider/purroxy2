@@ -6,6 +6,7 @@ import Home from './views/Home'
 import Library from './views/Library'
 import Settings from './views/Settings'
 import Vault from './views/Vault'
+import Community from './views/Community'
 import Builder from './views/Builder'
 
 export default function App() {
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/library" element={<Library />} />
           <Route path="/vault" element={<Vault />} />
+          <Route path="/community" element={<Community />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/builder" element={<Builder />} />
         </Routes>

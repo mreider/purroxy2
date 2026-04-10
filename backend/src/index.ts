@@ -78,6 +78,21 @@ export default {
         return handleStatus(request, env)
       }
 
+      // Community library
+      if (path === '/api/community' && request.method === 'GET') {
+        return handleCommunityList(request, env)
+      }
+      if (path === '/api/community/publish' && request.method === 'POST') {
+        return handleCommunityPublish(request, env)
+      }
+      if (path.startsWith('/api/community/') && request.method === 'GET') {
+        const id = path.split('/').pop()
+        return handleCommunityGet(id!, env)
+      }
+      if (path === '/api/community/install' && request.method === 'POST') {
+        return handleCommunityInstall(request, env)
+      }
+
       return json({ error: 'Not found' }, 404)
     } catch (err: any) {
       return json({ error: err.message }, 500)
@@ -163,4 +178,117 @@ async function handleValidate(request: Request, env: Env): Promise<Response> {
 
 async function handleStatus(request: Request, env: Env): Promise<Response> {
   return json({ status: 'ok', version: '0.1.0' })
+}
+
+// Community Library
+
+async function handleCommunityList(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url)
+  const search = url.searchParams.get('q') || ''
+  const hostname = url.searchParams.get('hostname') || ''
+
+  let query = 'SELECT c.*, u.email as author_email FROM community_capabilities c JOIN users u ON c.user_id = u.id WHERE c.status = ?'
+  const params: string[] = ['approved']
+
+  if (search) {
+    query += ' AND (c.name LIKE ? OR c.description LIKE ?)'
+    params.push(`%${search}%`, `%${search}%`)
+  }
+  if (hostname) {
+    query += ' AND c.hostname = ?'
+    params.push(hostname)
+  }
+
+  query += ' ORDER BY c.install_count DESC, c.created_at DESC LIMIT 50'
+
+  const stmt = env.DB.prepare(query)
+  const results = await stmt.bind(...params).all()
+
+  return json({
+    capabilities: results.results.map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      hostname: r.hostname,
+      authorEmail: r.author_email,
+      installCount: r.install_count,
+      createdAt: r.created_at
+    }))
+  })
+}
+
+async function handleCommunityPublish(request: Request, env: Env): Promise<Response> {
+  const auth = request.headers.get('Authorization')
+  if (!auth?.startsWith('Bearer ')) return json({ error: 'Login required' }, 401)
+  const userId = verifyToken(auth.slice(7), env.JWT_SECRET || 'dev-secret')
+  if (!userId) return json({ error: 'Invalid token' }, 401)
+
+  const body = await request.json() as any
+  const { name, description, hostname, actions, parameters, extractionRules, viewport } = body
+
+  if (!name || !hostname || !actions) return json({ error: 'Missing required fields' }, 400)
+
+  const id = crypto.randomUUID()
+  await env.DB.prepare(
+    'INSERT INTO community_capabilities (id, user_id, name, description, hostname, actions_json, parameters_json, extraction_rules_json, viewport_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(
+    id, userId, name, description || '', hostname,
+    JSON.stringify(actions), JSON.stringify(parameters || []),
+    JSON.stringify(extractionRules || []), JSON.stringify(viewport || null)
+  ).run()
+
+  // Grant contributor access
+  const existingSub = await env.DB.prepare('SELECT id, plan FROM subscriptions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1')
+    .bind(userId).first<any>()
+  if (existingSub && existingSub.plan === 'trial') {
+    await env.DB.prepare('UPDATE subscriptions SET plan = ?, status = ? WHERE id = ?')
+      .bind('contributor', 'contributor', existingSub.id).run()
+  }
+
+  return json({ id, status: 'pending', message: 'Submitted for review. Publishing grants free contributor access!' })
+}
+
+async function handleCommunityGet(id: string, env: Env): Promise<Response> {
+  const cap = await env.DB.prepare(
+    'SELECT c.*, u.email as author_email FROM community_capabilities c JOIN users u ON c.user_id = u.id WHERE c.id = ?'
+  ).bind(id).first<any>()
+
+  if (!cap) return json({ error: 'Not found' }, 404)
+
+  return json({
+    id: cap.id,
+    name: cap.name,
+    description: cap.description,
+    hostname: cap.hostname,
+    authorEmail: cap.author_email,
+    actions: JSON.parse(cap.actions_json),
+    parameters: JSON.parse(cap.parameters_json),
+    extractionRules: JSON.parse(cap.extraction_rules_json),
+    viewport: JSON.parse(cap.viewport_json || 'null'),
+    installCount: cap.install_count,
+    status: cap.status,
+    createdAt: cap.created_at
+  })
+}
+
+async function handleCommunityInstall(request: Request, env: Env): Promise<Response> {
+  const { id } = await request.json() as { id: string }
+  if (!id) return json({ error: 'Missing capability ID' }, 400)
+
+  const cap = await env.DB.prepare('SELECT * FROM community_capabilities WHERE id = ? AND status = ?')
+    .bind(id, 'approved').first<any>()
+  if (!cap) return json({ error: 'Capability not found or not approved' }, 404)
+
+  // Increment install count
+  await env.DB.prepare('UPDATE community_capabilities SET install_count = install_count + 1 WHERE id = ?').bind(id).run()
+
+  return json({
+    name: cap.name,
+    description: cap.description,
+    hostname: cap.hostname,
+    actions: JSON.parse(cap.actions_json),
+    parameters: JSON.parse(cap.parameters_json),
+    extractionRules: JSON.parse(cap.extraction_rules_json),
+    viewport: JSON.parse(cap.viewport_json || 'null')
+  })
 }

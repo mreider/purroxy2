@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Library, Lock, Settings } from 'lucide-react'
+import { Home, Library, Lock, Users, Settings } from 'lucide-react'
 import logo from '../assets/logo.png'
 
 const navItems = [
   { to: '/', icon: Home, label: 'Home' },
   { to: '/library', icon: Library, label: 'Library' },
   { to: '/vault', icon: Lock, label: 'Vault' },
+  { to: '/community', icon: Users, label: 'Community' },
   { to: '/settings', icon: Settings, label: 'Settings' }
 ]
 
