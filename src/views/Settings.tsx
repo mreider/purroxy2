@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Eye, EyeOff, Check, CheckCircle, XCircle, Loader2, Link2, Unlink } from 'lucide-react'
+import { Eye, EyeOff, Check, CheckCircle, XCircle, Loader2, Link2, Unlink, Lock } from 'lucide-react'
 import { useSettings } from '../stores/settings'
 
 export default function Settings() {
@@ -103,6 +103,9 @@ export default function Settings() {
         )}
       </section>
 
+      {/* App Lock */}
+      <LockSettings />
+
       {/* API Key */}
       <section className="mb-8">
         <label className="block text-sm font-medium mb-2">Anthropic API Key</label>
@@ -145,5 +148,116 @@ export default function Settings() {
         </p>
       </section>
     </div>
+  )
+}
+
+function LockSettings() {
+  const [config, setConfig] = useState<{ enabled: boolean; timeoutMinutes: number; hasPin: boolean; isLocked: boolean } | null>(null)
+  const [showSetup, setShowSetup] = useState(false)
+  const [pin, setPin] = useState('')
+  const [confirmPin, setConfirmPin] = useState('')
+  const [disablePin, setDisablePin] = useState('')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    window.purroxy.lock.getConfig().then(setConfig)
+  }, [])
+
+  const handleSetPin = async () => {
+    if (pin.length < 4) { setError('PIN must be at least 4 digits'); return }
+    if (pin !== confirmPin) { setError('PINs don\'t match'); return }
+    await window.purroxy.lock.setPin(pin)
+    setPin(''); setConfirmPin(''); setShowSetup(false); setError('')
+    window.purroxy.lock.getConfig().then(setConfig)
+  }
+
+  const handleDisable = async () => {
+    const result = await window.purroxy.lock.disable(disablePin)
+    if (result.error) { setError(result.error); return }
+    setDisablePin(''); setError('')
+    window.purroxy.lock.getConfig().then(setConfig)
+  }
+
+  const handleTimeout = async (minutes: number) => {
+    await window.purroxy.lock.setTimeout(minutes)
+    window.purroxy.lock.getConfig().then(setConfig)
+  }
+
+  if (!config) return null
+
+  return (
+    <section className="mb-8">
+      <label className="block text-sm font-medium mb-2">App Lock</label>
+
+      {config.enabled ? (
+        <div className="space-y-3">
+          <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock size={14} className="text-green-600" />
+                <span className="text-sm font-medium text-green-800 dark:text-green-300">Enabled</span>
+              </div>
+              <button onClick={() => window.purroxy.lock.lockNow()}
+                className="text-xs text-accent hover:text-accent-light font-medium">
+                Lock now
+              </button>
+            </div>
+            <p className="text-xs text-green-700 dark:text-green-400/80 mt-1">
+              Auto-locks after {config.timeoutMinutes} minutes of inactivity. MCP blocked while locked.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Timeout:</span>
+            {[1, 5, 15, 30].map(m => (
+              <button key={m} onClick={() => handleTimeout(m)}
+                className={`px-2 py-1 rounded text-xs transition-colors ${config.timeoutMinutes === m ? 'bg-accent text-white' : 'bg-black/5 dark:bg-white/10 text-gray-500 hover:bg-black/10 dark:hover:bg-white/15'}`}>
+                {m}m
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input type="password" inputMode="numeric" pattern="[0-9]*" value={disablePin}
+              onChange={e => { setDisablePin(e.target.value.replace(/\D/g, '')); setError('') }}
+              placeholder="Enter PIN to disable" maxLength={8}
+              className="flex-1 px-3 py-1.5 rounded-lg bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-xs focus:outline-none focus:ring-2 focus:ring-accent/50" />
+            <button onClick={handleDisable} disabled={!disablePin}
+              className="px-3 py-1.5 rounded-lg text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium disabled:opacity-40 transition-colors">
+              Disable
+            </button>
+          </div>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
+      ) : showSetup ? (
+        <div className="space-y-2 p-3 rounded-lg border border-accent/30 bg-accent/5">
+          <input type="password" inputMode="numeric" pattern="[0-9]*" value={pin}
+            onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setError('') }}
+            placeholder="Set a PIN (4+ digits)" maxLength={8} autoFocus
+            className="w-full px-3 py-2 rounded-lg bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50" />
+          <input type="password" inputMode="numeric" pattern="[0-9]*" value={confirmPin}
+            onChange={e => { setConfirmPin(e.target.value.replace(/\D/g, '')); setError('') }}
+            placeholder="Confirm PIN" maxLength={8}
+            className="w-full px-3 py-2 rounded-lg bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50" />
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => { setShowSetup(false); setPin(''); setConfirmPin(''); setError('') }}
+              className="px-3 py-1.5 rounded-lg text-xs text-gray-500">Cancel</button>
+            <button onClick={handleSetPin}
+              className="px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-medium hover:bg-accent-light">Enable</button>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-lg bg-black/5 dark:bg-white/5 p-3">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+            Set a PIN to auto-lock Purroxy after inactivity. All capability execution is blocked while locked.
+          </p>
+          <button onClick={() => setShowSetup(true)}
+            className="px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-xs font-medium transition-colors">
+            Set up PIN
+          </button>
+        </div>
+      )}
+    </section>
   )
 }

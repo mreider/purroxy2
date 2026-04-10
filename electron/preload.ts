@@ -82,6 +82,20 @@ contextBridge.exposeInMainWorld('purroxy', {
       return () => ipcRenderer.removeListener('executor:status', handler)
     }
   },
+  lock: {
+    getConfig: () => ipcRenderer.invoke('lock:getConfig'),
+    setPin: (pin: string) => ipcRenderer.invoke('lock:setPin', pin),
+    setTimeout: (minutes: number) => ipcRenderer.invoke('lock:setTimeout', minutes),
+    disable: (pin: string) => ipcRenderer.invoke('lock:disable', pin),
+    lockNow: () => ipcRenderer.invoke('lock:lockNow'),
+    unlock: (pin: string) => ipcRenderer.invoke('lock:unlock', pin),
+    activity: () => ipcRenderer.invoke('lock:activity'),
+    onStateChanged: (cb: (locked: boolean) => void) => {
+      const handler = (_e: unknown, locked: boolean) => cb(locked)
+      ipcRenderer.on('lock:stateChanged', handler)
+      return () => ipcRenderer.removeListener('lock:stateChanged', handler)
+    }
+  },
   vault: {
     list: () => ipcRenderer.invoke('vault:list'),
     set: (key: string, value: string) => ipcRenderer.invoke('vault:set', key, value),

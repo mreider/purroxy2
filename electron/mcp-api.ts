@@ -2,6 +2,7 @@ import { createServer, IncomingMessage, ServerResponse } from 'http'
 import { getAllCapabilities, getCapability } from './capabilities'
 import { getAllSites, getSite, getSession } from './sites'
 import { getAllDecryptedValues } from './vault'
+import { isLocked } from './app-lock'
 import { PlaywrightEngine } from '../core/browser/playwright-engine'
 import { writeFileSync } from 'fs'
 import { join } from 'path'
@@ -62,7 +63,13 @@ export function startMCPApi(): number {
           res.end(JSON.stringify({ tools }))
 
         } else if (url === '/execute' && req.method === 'POST') {
-          // Execute a capability
+          // Block execution when app is locked
+          if (isLocked()) {
+            res.writeHead(403)
+            res.end(JSON.stringify({ error: 'Purroxy is locked. Unlock the app to run capabilities.' }))
+            return
+          }
+
           const { capabilityId, params: paramValues = {} } = JSON.parse(body || '{}')
 
           const cap = getCapability(capabilityId)

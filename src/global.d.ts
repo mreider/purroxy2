@@ -130,6 +130,16 @@ interface PurroxyAPI {
     delete: (id: string) => Promise<boolean>
     update: (id: string, updates: unknown) => Promise<CapabilityData | undefined>
   }
+  lock: {
+    getConfig: () => Promise<{ enabled: boolean; timeoutMinutes: number; hasPin: boolean; isLocked: boolean }>
+    setPin: (pin: string) => Promise<boolean>
+    setTimeout: (minutes: number) => Promise<boolean>
+    disable: (pin: string) => Promise<{ success?: boolean; error?: string }>
+    lockNow: () => Promise<boolean>
+    unlock: (pin: string) => Promise<{ success?: boolean; error?: string }>
+    activity: () => Promise<boolean>
+    onStateChanged: (cb: (locked: boolean) => void) => () => void
+  }
   vault: {
     list: () => Promise<Array<{ id: string; key: string; hasValue: boolean; createdAt: string; updatedAt: string }>>
     set: (key: string, value: string) => Promise<boolean>
