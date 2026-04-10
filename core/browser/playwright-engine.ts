@@ -80,6 +80,7 @@ export class PlaywrightEngine {
     try {
       const resolvedActions = this.substituteParams(actions, parameters, paramValues)
 
+      let failedSteps = 0
       for (let i = 0; i < resolvedActions.length; i++) {
         const action = resolvedActions[i]
         this.addLog(`Step ${i + 1}/${resolvedActions.length}: ${action.type} ${action.selector || action.url || ''} ${action.label ? '(' + action.label + ')' : ''}`.trim())
@@ -88,11 +89,13 @@ export class PlaywrightEngine {
           await this.executeAction(action)
           this.addLog(`  -> OK`)
         } catch (err: any) {
-          this.addLog(`  -> FAILED: ${err.message}`)
-          throw err
+          failedSteps++
+          this.addLog(`  -> FAILED (skipping): ${err.message}`)
+          // Continue with remaining actions instead of stopping
         }
       }
 
+      this.addLog(`Completed: ${resolvedActions.length - failedSteps}/${resolvedActions.length} actions succeeded`)
       this.addLog('Waiting for page to settle...')
       await this.page.waitForLoadState('networkidle').catch(() => {})
       await this.page.waitForTimeout(1000)
@@ -102,14 +105,32 @@ export class PlaywrightEngine {
 
       this.addLog('Extracting data...')
       const data = await this.extractData(extractionRules)
-      this.addLog(`Extracted ${Object.keys(data).length} fields`)
+      const cssFieldsFound = Object.values(data).filter(v => v !== null && (Array.isArray(v) ? v.length > 0 : true)).length
+      this.addLog(`CSS extraction: ${cssFieldsFound}/${Object.keys(data).length} fields found`)
+
+      // Fallback: always capture visible page text for AI parsing
+      let pageContent = ''
+      try {
+        pageContent = await this.page.evaluate(() => {
+          return document.body.innerText.slice(0, 5000)
+        })
+        this.addLog(`Page text captured: ${pageContent.length} chars`)
+      } catch {}
+
+      // If CSS extraction got nothing useful, put page content as the data
+      if (cssFieldsFound === 0 && pageContent) {
+        data['_pageContent'] = pageContent
+        this.addLog('Using page text as fallback extraction')
+      }
 
       const screenshotBuffer = await this.page.screenshot({ type: 'png' })
       const screenshot = screenshotBuffer.toString('base64')
 
       return {
-        success: true,
+        success: failedSteps === 0,
         data,
+        error: failedSteps > 0 ? `${failedSteps} action(s) failed but extraction continued` : undefined,
+        errorType: failedSteps > 0 ? 'site_changed' : undefined,
         durationMs: Date.now() - startTime,
         screenshot,
         log: this.log
@@ -320,24 +341,75 @@ export class PlaywrightEngine {
     }
 
     // If no locators, fall back to old approach using selector + label
-    if (locators.length === 0 && action.selector) {
-      try {
-        await this.page.waitForSelector(action.selector, { state: 'visible', timeout: 5000 })
-        await this.page.click(action.selector)
-        return
-      } catch {}
+    if (locators.length === 0) {
+      this.addLog(`  No locators stored, trying CSS + label fallbacks...`)
 
-      // Label-based fallback for old recordings without locators
-      if (action.label && action.label.length > 1) {
+      if (action.selector) {
         try {
-          await this.page.getByText(action.label, { exact: false }).first().click({ timeout: 3000 })
-          this.addLog(`  Fallback: found by text "${action.label}"`)
+          await this.page.waitForSelector(action.selector, { state: 'visible', timeout: 5000 })
+          await this.page.click(action.selector)
+          this.addLog(`  Found by CSS selector`)
           return
-        } catch {}
+        } catch {
+          this.addLog(`  CSS selector failed`)
+        }
+      }
+
+      if (action.label && action.label.length > 1) {
+        const label = action.label
+
+        // Try role + text
+        if (action.tagName === 'button' || action.tagName === 'a') {
+          try {
+            const role = action.tagName === 'a' ? 'link' : 'button'
+            await this.page.getByRole(role, { name: label, exact: false }).first().click({ timeout: 3000 })
+            this.addLog(`  Fallback: found by role="${role}" name="${label}"`)
+            return
+          } catch {
+            this.addLog(`  Role fallback failed for "${label}"`)
+          }
+        }
+
+        // Try exact text
+        try {
+          await this.page.getByText(label, { exact: true }).first().click({ timeout: 3000 })
+          this.addLog(`  Fallback: found by exact text "${label}"`)
+          return
+        } catch {
+          this.addLog(`  Exact text fallback failed for "${label}"`)
+        }
+
+        // Try partial text
+        try {
+          await this.page.getByText(label, { exact: false }).first().click({ timeout: 3000 })
+          this.addLog(`  Fallback: found by partial text "${label}"`)
+          return
+        } catch {
+          this.addLog(`  Partial text fallback failed for "${label}"`)
+        }
+
+        // Try aria-label
+        try {
+          await this.page.click(`[aria-label*="${label}" i]`, { timeout: 3000 })
+          this.addLog(`  Fallback: found by aria-label "${label}"`)
+          return
+        } catch {
+          this.addLog(`  Aria-label fallback failed for "${label}"`)
+        }
+
+        // Try clicking inside a container that has the text
+        try {
+          const container = this.page.locator(`:has-text("${label}")`).last()
+          await container.click({ timeout: 3000 })
+          this.addLog(`  Fallback: found by has-text container "${label}"`)
+          return
+        } catch {
+          this.addLog(`  Has-text fallback failed for "${label}"`)
+        }
       }
     }
 
-    const tried = locators.map(l => l.strategy).join(', ') || 'selector only'
+    const tried = locators.length > 0 ? locators.map(l => l.strategy).join(', ') : 'css, role, text, aria, has-text'
     throw new Error(`Could not find element (tried: ${tried}): ${action.selector || 'no selector'}${action.label ? ` label="${action.label}"` : ''}`)
   }
 

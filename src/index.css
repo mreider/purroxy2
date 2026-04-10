@@ -20,3 +20,9 @@ body {
 .no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* Allow text selection in content areas */
+.selectable, .selectable * {
+  user-select: text;
+  -webkit-user-select: text;
+}

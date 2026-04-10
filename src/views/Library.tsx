@@ -149,12 +149,22 @@ export default function Library() {
                             </div>
 
                             {/* Test result */}
-                            {testResult?.capId === cap.id && (
-                              <div className={`mx-4 mb-3 p-3 rounded-lg text-xs ${testResult.result.success ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30'}`}>
+                            {testResult?.capId === cap.id && (() => {
+                              const hasData = Object.keys(testResult.result.data).length > 0
+                              const partial = !testResult.result.success && hasData
+                              const colorClass = testResult.result.success
+                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/30'
+                                : partial
+                                  ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/30'
+                                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30'
+                              return (
+                              <div className={`mx-4 mb-3 p-3 rounded-lg text-xs border ${colorClass}`}>
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center gap-1.5">
                                     {testResult.result.success ? (
                                       <><CheckCircle size={12} className="text-green-600" /> <span className="font-medium text-green-800 dark:text-green-300">Test passed</span></>
+                                    ) : partial ? (
+                                      <><AlertTriangle size={12} className="text-amber-600" /> <span className="font-medium text-amber-800 dark:text-amber-300">Partial — got data but some steps failed</span></>
                                     ) : (
                                       <><AlertTriangle size={12} className="text-red-600" /> <span className="font-medium text-red-800 dark:text-red-300">Test failed</span></>
                                     )}
@@ -169,23 +179,37 @@ export default function Library() {
                                   <p className="text-red-700 dark:text-red-400 mb-2">{testResult.result.error}</p>
                                 )}
 
-                                {testResult.result.success && Object.keys(testResult.result.data).length > 0 && (
+                                {Object.keys(testResult.result.data).length > 0 && (
                                   <div className="space-y-1">
-                                    <p className="font-medium text-gray-600 dark:text-gray-300 mb-1">Extracted data:</p>
-                                    {Object.entries(testResult.result.data).map(([key, val]) => (
-                                      <div key={key} className="flex gap-2">
-                                        <span className="text-gray-500 font-medium">{key}:</span>
-                                        <span className="text-gray-700 dark:text-gray-300 truncate">
-                                          {Array.isArray(val) ? `[${val.length} items]` : String(val ?? 'null')}
-                                        </span>
-                                      </div>
-                                    ))}
+                                    {(testResult.result.data as any)._pageContent ? (
+                                      <>
+                                        <p className="font-medium text-gray-600 dark:text-gray-300 mb-1">Page content (CSS selectors missed, showing raw text):</p>
+                                        <div className="selectable text-gray-700 dark:text-gray-300 bg-black/5 dark:bg-white/5 rounded p-2 max-h-48 overflow-auto whitespace-pre-wrap text-[11px]">
+                                          {String((testResult.result.data as any)._pageContent).slice(0, 2000)}
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <p className="font-medium text-gray-600 dark:text-gray-300 mb-1">Extracted data:</p>
+                                        {Object.entries(testResult.result.data).map(([key, val]) => (
+                                          <div key={key} className="flex gap-2">
+                                            <span className="text-gray-500 font-medium">{key}:</span>
+                                            <span className="text-gray-700 dark:text-gray-300 truncate selectable">
+                                              {Array.isArray(val) ? `[${val.length} items]` : String(val ?? 'null')}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </>
+                                    )}
                                   </div>
                                 )}
 
                                 {testResult.result.screenshot && (
                                   <details className="mt-2">
-                                    <summary className="text-gray-400 cursor-pointer hover:text-gray-600">Screenshot</summary>
+                                    <summary className="text-gray-400 cursor-pointer hover:text-gray-600">
+                                      Screenshot
+                                      <a href={`data:image/png;base64,${testResult.result.screenshot}`} download={`purroxy-test-${cap.name.replace(/\s+/g, '-').toLowerCase()}.png`} className="ml-2 text-[10px] text-accent hover:text-accent-light" onClick={e => e.stopPropagation()}>download</a>
+                                    </summary>
                                     <img src={`data:image/png;base64,${testResult.result.screenshot}`} alt="Test result" className="mt-1 rounded border border-black/10 dark:border-white/10 max-w-full" />
                                   </details>
                                 )}
@@ -204,7 +228,7 @@ export default function Library() {
                                   </details>
                                 )}
                               </div>
-                            )}
+                              )})()}
                           </div>
                         ))}
                       </div>

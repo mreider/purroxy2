@@ -538,7 +538,7 @@ function ChatPanel({ messages, loading, input, onInputChange, onSend, isRecordin
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="flex-1 overflow-auto p-4 space-y-3">
+      <div className="flex-1 overflow-auto p-4 space-y-3 selectable">
         {messages.length === 0 && !loading && (
           <div className="text-center py-8">
             <p className="text-sm text-gray-400 dark:text-gray-500">Analyzing the page...</p>
