@@ -33,6 +33,11 @@ export function setupIPC() {
   })
 
   ipcMain.handle('sites:delete', (_event, id: string) => {
+    // Delete all capabilities belonging to this site first
+    const siteCaps = getCapabilitiesForSite(id)
+    for (const cap of siteCaps) {
+      deleteCapability(cap.id)
+    }
     deleteSite(id)
     return true
   })
