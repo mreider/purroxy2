@@ -42,7 +42,13 @@
     .btn-primary { background: var(--accent); color: #fff; } .btn-primary:hover { background: var(--accent-hover); text-decoration: none; }
     .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); } .btn-ghost:hover { background: var(--bg-alt); text-decoration: none; }
     .hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .hero-meta { margin-top: 8px; font-size: 12px; color: var(--text-faint); }
+    .hero-meta { margin-top: 16px; font-size: 12px; color: var(--text-faint); }
+    .hero-version { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+    .hero-version a { color: var(--text-faint); } .hero-version a:hover { color: var(--text-muted); }
+    .download-other { font-size: 12px; color: var(--text-faint); position: relative; display: inline-block; cursor: pointer; }
+    .download-other:hover .download-dropdown { display: block; }
+    .download-dropdown { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 0; margin-bottom: 6px; min-width: 160px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .download-dropdown a { display: block; padding: 6px 16px; font-size: 13px; color: var(--text-muted); text-decoration: none; } .download-dropdown a:hover { background: var(--bg-alt); color: var(--text); }
 
     /* Sections */
     section { padding: 64px 24px; }
@@ -107,13 +113,61 @@
 <div class="hero" id="download">
   <img src="/icon-192.png" alt="Purroxy">
   <h1>Give Claude secure access<br>to your accounts.</h1>
-  <p>Purroxy lets Claude act on websites that require your login: email, banking, insurance, domains. Your credentials never leave your machine.</p>
-  <div class="hero-buttons">
-    <a href="https://github.com/mreider/purroxy2/releases/latest" class="btn btn-primary">Download</a>
+  <div class="hero-buttons" id="download-buttons">
+    <a href="https://github.com/mreider/purroxy2/releases/latest" class="btn btn-primary" id="download-btn">Download</a>
     <a href="https://github.com/mreider/purroxy2" class="btn btn-ghost">View Source</a>
   </div>
-  <p class="hero-meta">macOS &middot; Windows &middot; Linux</p>
+  <div class="hero-meta" id="download-meta">
+    <span id="download-version"></span>
+    <span class="download-other" id="download-other"></span>
+  </div>
 </div>
+
+<script>
+(function() {
+  var ua = navigator.userAgent.toLowerCase();
+  var platform = ua.includes('win') ? 'win' : ua.includes('linux') ? 'linux' : 'mac';
+  var labels = { mac: 'macOS', win: 'Windows', linux: 'Linux' };
+  var btn = document.getElementById('download-btn');
+  var versionEl = document.getElementById('download-version');
+  var otherEl = document.getElementById('download-other');
+
+  fetch('https://api.github.com/repos/mreider/purroxy2/releases/latest')
+    .then(function(r) { return r.json(); })
+    .then(function(release) {
+      var version = release.tag_name || '';
+      var assets = release.assets || [];
+
+      var files = { mac: null, win: null, linux: null };
+      assets.forEach(function(a) {
+        if (a.name.endsWith('.dmg')) files.mac = a;
+        else if (a.name.endsWith('.exe')) files.win = a;
+        else if (a.name.endsWith('.AppImage')) files.linux = a;
+      });
+
+      var primary = files[platform];
+      if (primary) {
+        btn.href = primary.browser_download_url;
+        btn.textContent = 'Download for ' + labels[platform];
+      }
+
+      versionEl.textContent = version;
+
+      var others = ['mac','win','linux'].filter(function(p) { return p !== platform && files[p]; });
+      if (others.length) {
+        var dropdown = '<div class="download-dropdown">';
+        others.forEach(function(p) {
+          dropdown += '<a href="' + files[p].browser_download_url + '">' + labels[p] + '</a>';
+        });
+        dropdown += '</div>';
+        otherEl.innerHTML = ' &middot; Also for ' + others.map(function(p) { return labels[p]; }).join(' and ') + dropdown;
+      }
+    })
+    .catch(function() {
+      btn.textContent = 'Download';
+    });
+})();
+</script>
 
 <section class="alt-bg">
   <div class="container">
@@ -189,7 +243,7 @@
     <div class="pricing-card">
       <p class="price">$3.89<span> / month</span></p>
       <p class="subtitle">14-day free trial. Everything included. Cancel anytime.</p>
-      <a href="https://github.com/mreider/purroxy2/releases/latest" class="btn btn-primary">Download Free</a>
+      <a href="https://github.com/mreider/purroxy2/releases/latest" class="btn btn-primary" id="pricing-download-btn">Download Free</a>
       <div class="divider">or</div>
       <div class="contributor-box">
         <p>Contribute a capability, use Purroxy free forever</p>
