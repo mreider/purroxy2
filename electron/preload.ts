@@ -122,6 +122,17 @@ contextBridge.exposeInMainWorld('purroxy', {
     expandForRecording: () => ipcRenderer.invoke('window:expandForRecording'),
     restoreSize: () => ipcRenderer.invoke('window:restoreSize')
   },
+  updates: {
+    check: () => ipcRenderer.invoke('updates:check'),
+    download: () => ipcRenderer.invoke('updates:download'),
+    install: () => ipcRenderer.invoke('updates:install'),
+    getVersion: () => ipcRenderer.invoke('updates:getVersion'),
+    onStatus: (cb: (status: unknown) => void) => {
+      const handler = (_e: unknown, status: unknown) => cb(status)
+      ipcRenderer.on('updates:status', handler)
+      return () => ipcRenderer.removeListener('updates:status', handler)
+    }
+  },
   system: {
     copyAndOpenClaude: (text: string) => ipcRenderer.invoke('system:copyAndOpenClaude', text)
   }

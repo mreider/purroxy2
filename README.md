@@ -51,4 +51,4 @@ npm run deploy     # Deploy to Cloudflare
 
 ## License
 
-MIT
+Apache 2.0

@@ -11,6 +11,7 @@ import { setupVault } from './vault'
 import { setupAppLock } from './app-lock'
 import { setupAccount } from './account'
 import { setupHealer } from './healer'
+import { setupUpdater } from './updater'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -78,6 +79,7 @@ app.whenReady().then(() => {
   setupAccount()
   setupHealer()
   startMCPApi()
+  setupUpdater(mainWindow!)
   setupTray(mainWindow!)
 
   app.on('activate', () => {

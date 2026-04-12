@@ -42,6 +42,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npm version "${GITHUB_REF#refs/tags/v}" --no-git-tag-version
+
       - name: Build app
         run: npm run build
 
@@ -75,6 +79,7 @@ jobs:
           retention-days: 30
 
   build-win:
+    needs: [test]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,6 +89,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npm version "${GITHUB_REF#refs/tags/v}" --no-git-tag-version
+        shell: bash
 
       - name: Build app
         run: npm run build
@@ -101,6 +111,7 @@ jobs:
           retention-days: 30
 
   build-linux:
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -110,6 +121,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npm version "${GITHUB_REF#refs/tags/v}" --no-git-tag-version
 
       - name: Build app
         run: npm run build
@@ -158,6 +173,36 @@ jobs:
           VERSION="${GITHUB_REF#refs/tags/v}"
           echo "{\"version\":\"${VERSION}\",\"date\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"dmg\":\"Purroxy-${VERSION}-arm64.dmg\",\"exe\":\"Purroxy.Setup.${VERSION}.exe\",\"appimage\":\"Purroxy-${VERSION}.AppImage\"}" > artifacts/version.json
 
+      - name: Generate electron-updater metadata
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          DATE=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+
+          DMG="artifacts/Purroxy-${VERSION}-arm64.dmg"
+          EXE="artifacts/Purroxy.Setup.${VERSION}.exe"
+          APPIMAGE="artifacts/Purroxy-${VERSION}.AppImage"
+
+          gen_yml() {
+            local FILE="$1" OUTPUT="$2"
+            local BASENAME=$(basename "$FILE")
+            local SHA512=$(openssl dgst -sha512 -binary "$FILE" | base64 -w 0 2>/dev/null || openssl dgst -sha512 -binary "$FILE" | base64)
+            local SIZE=$(stat --format=%s "$FILE" 2>/dev/null || stat -f%z "$FILE")
+            cat > "$OUTPUT" <<EOF
+          version: ${VERSION}
+          files:
+            - url: ${BASENAME}
+              sha512: ${SHA512}
+              size: ${SIZE}
+          path: ${BASENAME}
+          sha512: ${SHA512}
+          releaseDate: '${DATE}'
+          EOF
+          }
+
+          gen_yml "$DMG" "artifacts/latest-mac.yml"
+          gen_yml "$EXE" "artifacts/latest.yml"
+          gen_yml "$APPIMAGE" "artifacts/latest-linux.yml"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -167,4 +212,26 @@ jobs:
             artifacts/**/*.AppImage
             artifacts/checksums.txt
             artifacts/version.json
+            artifacts/latest-mac.yml
+            artifacts/latest.yml
+            artifacts/latest-linux.yml
           generate_release_notes: true
+
+  publish-npm:
+    needs: [release]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Set version from tag
+        run: npm version "${GITHUB_REF#refs/tags/v}" --no-git-tag-version
+
+      - name: Publish to npm
+        run: bash scripts/publish-npm.sh
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

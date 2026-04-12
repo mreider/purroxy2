@@ -26,6 +26,9 @@ vi.mock('lucide-react', () => {
     Link2: icon('Link2'),
     Unlink: icon('Unlink'),
     Lock: icon('Lock'),
+    Download: icon('Download'),
+    RotateCw: icon('RotateCw'),
+    RefreshCw: icon('RefreshCw'),
   }
 })
 
@@ -261,18 +264,6 @@ describe('Settings view', () => {
       })
     })
 
-    it('renders version info', async () => {
-      const api = getPurroxyMock()
-      api.account.getStatus.mockResolvedValue(buildAccountStatus())
-      api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
-
-      render(<Settings />)
-
-      await waitFor(() => {
-        expect(screen.getByText(/Purroxy v0\.1\.0/)).toBeInTheDocument()
-      })
-    })
-
     it('shows Save button for API key', async () => {
       const api = getPurroxyMock()
       api.account.getStatus.mockResolvedValue(buildAccountStatus())
@@ -282,6 +273,159 @@ describe('Settings view', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Save')).toBeInTheDocument()
+      })
+    })
+  })
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // UpdateSection
+  // ════════════════════════════════════════════════════════════════════════════
+
+  describe('UpdateSection', () => {
+    it('renders current version and check button', async () => {
+      const api = getPurroxyMock()
+      api.account.getStatus.mockResolvedValue(buildAccountStatus())
+      api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
+      api.updates.getVersion.mockResolvedValue('1.2.3')
+
+      render(<Settings />)
+
+      await waitFor(() => {
+        expect(screen.getByText('v1.2.3')).toBeInTheDocument()
+        expect(screen.getByText('Check for updates')).toBeInTheDocument()
+      })
+    })
+
+    it('shows Electron version in footer', async () => {
+      const api = getPurroxyMock()
+      api.account.getStatus.mockResolvedValue(buildAccountStatus())
+      api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
+
+      render(<Settings />)
+
+      await waitFor(() => {
+        expect(screen.getByText(/Electron/)).toBeInTheDocument()
+      })
+    })
+
+    it('calls updates.check when Check for updates is clicked', async () => {
+      const api = getPurroxyMock()
+      api.account.getStatus.mockResolvedValue(buildAccountStatus())
+      api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
+
+      render(<Settings />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Check for updates')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Check for updates'))
+
+      expect(api.updates.check).toHaveBeenCalled()
+    })
+
+    it('shows "Up to date" when no update available', async () => {
+      let statusCb: ((s: any) => void) | null = null
+      const api = getPurroxyMock()
+      api.account.getStatus.mockResolvedValue(buildAccountStatus())
+      api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
+      api.updates.onStatus.mockImplementation((cb: any) => { statusCb = cb; return () => {} })
+
+      render(<Settings />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Check for updates')).toBeInTheDocument()
+      })
+
+      act(() => { statusCb!({ state: 'not-available' }) })
+
+      await waitFor(() => {
+        expect(screen.getByText('Up to date')).toBeInTheDocument()
+      })
+    })
+
+    it('shows available version with Download button', async () => {
+      let statusCb: ((s: any) => void) | null = null
+      const api = getPurroxyMock()
+      api.account.getStatus.mockResolvedValue(buildAccountStatus())
+      api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
+      api.updates.onStatus.mockImplementation((cb: any) => { statusCb = cb; return () => {} })
+
+      render(<Settings />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Check for updates')).toBeInTheDocument()
+      })
+
+      act(() => { statusCb!({ state: 'available', version: '2.0.0', releaseNotes: '', releaseDate: '' }) })
+
+      await waitFor(() => {
+        expect(screen.getByText('v2.0.0 available')).toBeInTheDocument()
+        expect(screen.getByText('Download')).toBeInTheDocument()
+      })
+    })
+
+    it('shows progress bar while downloading', async () => {
+      let statusCb: ((s: any) => void) | null = null
+      const api = getPurroxyMock()
+      api.account.getStatus.mockResolvedValue(buildAccountStatus())
+      api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
+      api.updates.onStatus.mockImplementation((cb: any) => { statusCb = cb; return () => {} })
+
+      render(<Settings />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Check for updates')).toBeInTheDocument()
+      })
+
+      act(() => { statusCb!({ state: 'downloading', percent: 45, bytesPerSecond: 1000, transferred: 450, total: 1000 }) })
+
+      await waitFor(() => {
+        expect(screen.getByText('Downloading update...')).toBeInTheDocument()
+        expect(screen.getByText('45%')).toBeInTheDocument()
+      })
+    })
+
+    it('shows Restart & update when downloaded', async () => {
+      let statusCb: ((s: any) => void) | null = null
+      const api = getPurroxyMock()
+      api.account.getStatus.mockResolvedValue(buildAccountStatus())
+      api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
+      api.updates.onStatus.mockImplementation((cb: any) => { statusCb = cb; return () => {} })
+
+      render(<Settings />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Check for updates')).toBeInTheDocument()
+      })
+
+      act(() => { statusCb!({ state: 'downloaded', version: '2.0.0' }) })
+
+      await waitFor(() => {
+        expect(screen.getByText('v2.0.0 ready to install')).toBeInTheDocument()
+        expect(screen.getByText(/Restart/)).toBeInTheDocument()
+      })
+    })
+
+    it('shows error message on update failure', async () => {
+      let statusCb: ((s: any) => void) | null = null
+      const api = getPurroxyMock()
+      api.account.getStatus.mockResolvedValue(buildAccountStatus())
+      api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
+      api.updates.onStatus.mockImplementation((cb: any) => { statusCb = cb; return () => {} })
+
+      render(<Settings />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Check for updates')).toBeInTheDocument()
+      })
+
+      act(() => { statusCb!({ state: 'error', message: 'Network error' }) })
+
+      await waitFor(() => {
+        expect(screen.getByText('Network error')).toBeInTheDocument()
+        // Check button should still be visible for retry
+        expect(screen.getByText('Check for updates')).toBeInTheDocument()
       })
     })
   })

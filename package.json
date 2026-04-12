@@ -11,14 +11,30 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "publish:npm": "bash scripts/publish-npm.sh"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/mreider/purroxy2"
   },
   "author": "mreider",
-  "license": "MIT",
+  "license": "Apache-2.0",
+  "bin": {
+    "purroxy": "./mcp-server.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "claude",
+    "anthropic",
+    "electron",
+    "browser-automation",
+    "playwright",
+    "ai",
+    "automation",
+    "desktop-app"
+  ],
   "build": {
     "appId": "com.purroxy.app",
     "productName": "Purroxy",
@@ -85,6 +101,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "electron-store": "^8.2.0",
+    "electron-updater": "^6.8.3",
     "lucide-react": "^0.460.0",
     "playwright": "^1.59.1",
     "react": "^18.3.0",

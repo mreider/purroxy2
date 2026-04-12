@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { Eye, EyeOff, Check, CheckCircle, Loader2, Link2, Unlink, Lock } from 'lucide-react'
+import { Eye, EyeOff, Check, CheckCircle, Loader2, Link2, Unlink, Lock, Download, RotateCw, RefreshCw } from 'lucide-react'
 import { useSettings } from '../stores/settings'
 
 function SectionCard({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
@@ -76,14 +76,13 @@ export default function Settings() {
             </button>
           </form>
         </SectionCard>
+
+        <UpdateSection />
       </div>
 
       <div className="mt-6 pt-4 border-t border-black/5 dark:border-white/5">
         <p className="text-xs text-gray-400 dark:text-gray-500">
-          Purroxy v0.1.0
-          {window.purroxy && (
-            <> &middot; Electron {window.purroxy.versions.electron} &middot; {window.purroxy.platform}</>
-          )}
+          Electron {window.purroxy.versions.electron} &middot; {window.purroxy.platform}
         </p>
       </div>
     </div>
@@ -478,6 +477,111 @@ function LockSection() {
           </button>
         </div>
       )}
+    </SectionCard>
+  )
+}
+
+function UpdateSection() {
+  const [status, setStatus] = useState<UpdateStatus | null>(null)
+  const [version, setVersion] = useState('')
+  const [checking, setChecking] = useState(false)
+
+  useEffect(() => {
+    window.purroxy.updates.getVersion().then(setVersion)
+    const unsub = window.purroxy.updates.onStatus((s: UpdateStatus) => {
+      setStatus(s)
+      if (s.state !== 'checking') setChecking(false)
+    })
+    return unsub
+  }, [])
+
+  const handleCheck = async () => {
+    setChecking(true)
+    setStatus(null)
+    await window.purroxy.updates.check()
+  }
+
+  const handleDownload = async () => {
+    await window.purroxy.updates.download()
+  }
+
+  const handleInstall = async () => {
+    await window.purroxy.updates.install()
+  }
+
+  return (
+    <SectionCard title="Updates" description="Keep Purroxy and its MCP server up to date.">
+      <div className="space-y-3">
+        {/* Current version + check button */}
+        {(!status || status.state === 'not-available' || status.state === 'error' || status.state === 'checking') && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              {version ? `v${version}` : '...'}
+              {status?.state === 'not-available' && (
+                <span className="text-xs text-gray-400 ml-2">Up to date</span>
+              )}
+            </p>
+            <button type="button" onClick={handleCheck} disabled={checking}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/15 transition-colors disabled:opacity-40">
+              {checking ? (
+                <><Loader2 size={12} className="animate-spin" /> Checking...</>
+              ) : (
+                <><RefreshCw size={12} /> Check for updates</>
+              )}
+            </button>
+          </div>
+        )}
+
+        {status?.state === 'error' && (
+          <p className="text-xs text-red-500">{status.message}</p>
+        )}
+
+        {/* Update available */}
+        {status?.state === 'available' && (
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">v{status.version} available</p>
+              <p className="text-xs text-gray-400">Current: v{version}</p>
+            </div>
+            <button type="button" onClick={handleDownload}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-xs font-medium transition-colors">
+              <Download size={12} /> Download
+            </button>
+          </div>
+        )}
+
+        {/* Downloading */}
+        {status?.state === 'downloading' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-600 dark:text-gray-300">Downloading update...</p>
+              <span className="text-xs text-gray-400">{status.percent}%</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-accent transition-all"
+                style={{ width: `${status.percent}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Downloaded — ready to install */}
+        {status?.state === 'downloaded' && (
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">v{status.version} ready to install</p>
+              <button type="button" onClick={handleInstall}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-xs font-medium transition-colors">
+                <RotateCw size={12} /> Restart &amp; update
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              The MCP server will restart automatically when Claude Desktop reconnects.
+            </p>
+          </div>
+        )}
+      </div>
     </SectionCard>
   )
 }

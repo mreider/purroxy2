@@ -173,6 +173,14 @@ const purroxyMock = {
     disconnect: vi.fn().mockResolvedValue({ success: true }),
   },
 
+  updates: {
+    check: vi.fn().mockResolvedValue({ success: true }),
+    download: vi.fn().mockResolvedValue({ success: true }),
+    install: vi.fn().mockResolvedValue(undefined),
+    getVersion: vi.fn().mockResolvedValue('1.0.0'),
+    onStatus: createCallbackRegistration(),
+  },
+
   window: {
     expandForRecording: vi.fn().mockResolvedValue(undefined),
     restoreSize: vi.fn().mockResolvedValue(undefined),
@@ -294,6 +302,12 @@ export function resetPurroxyMock(): void {
   purroxyMock.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
   purroxyMock.claude.connect.mockResolvedValue({ success: true })
   purroxyMock.claude.disconnect.mockResolvedValue({ success: true })
+
+  purroxyMock.updates.check.mockResolvedValue({ success: true })
+  purroxyMock.updates.download.mockResolvedValue({ success: true })
+  purroxyMock.updates.install.mockResolvedValue(undefined)
+  purroxyMock.updates.getVersion.mockResolvedValue('1.0.0')
+  purroxyMock.updates.onStatus.mockReturnValue(() => {})
 
   purroxyMock.window.expandForRecording.mockResolvedValue(undefined)
   purroxyMock.window.restoreSize.mockResolvedValue(undefined)

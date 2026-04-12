@@ -78,6 +78,14 @@ interface CapabilityData {
   updatedAt: string
 }
 
+type UpdateStatus =
+  | { state: 'checking' }
+  | { state: 'available'; version: string; releaseNotes: string; releaseDate: string }
+  | { state: 'not-available' }
+  | { state: 'downloading'; percent: number; bytesPerSecond: number; transferred: number; total: number }
+  | { state: 'downloaded'; version: string }
+  | { state: 'error'; message: string }
+
 interface PurroxyAPI {
   platform: string
   versions: {
@@ -166,6 +174,13 @@ interface PurroxyAPI {
     test: (capabilityId: string, paramValues?: Record<string, string>) =>
       Promise<{ success: boolean; data: Record<string, unknown>; error?: string; errorType?: string; durationMs: number; screenshot?: string }>
     onStatus: (cb: (status: { capabilityId: string; status: string; result?: unknown }) => void) => () => void
+  }
+  updates: {
+    check: () => Promise<{ success?: boolean; version?: string; error?: string }>
+    download: () => Promise<{ success?: boolean; error?: string }>
+    install: () => Promise<void>
+    getVersion: () => Promise<string>
+    onStatus: (cb: (status: UpdateStatus) => void) => () => void
   }
   system: {
     copyAndOpenClaude: (text: string) => Promise<{ opened: boolean; downloadUrl?: string }>
