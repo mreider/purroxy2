@@ -7,6 +7,9 @@
 import { vi } from 'vitest'
 import { MockStore } from '../mocks/electron-store-mock'
 
+// ── Vite compile-time constants ────────────────────────────────────────────
+vi.stubGlobal('__BUILD_SECRET__', 'test-build-secret')
+
 // ── electron module ────────────────────────────────────────────────────────
 
 const registeredHandlers = new Map<string, (...args: any[]) => any>()

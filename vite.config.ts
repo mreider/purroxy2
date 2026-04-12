@@ -14,6 +14,9 @@ export default defineConfig({
       {
         entry: 'electron/main.ts',
         vite: {
+          define: {
+            '__BUILD_SECRET__': JSON.stringify(process.env.PURROXY_BUILD_SECRET || '')
+          },
           build: {
             outDir: 'dist-electron',
             rollupOptions: {

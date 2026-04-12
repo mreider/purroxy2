@@ -1,6 +1,8 @@
 import { ipcMain, shell, BrowserWindow, app } from 'electron'
 import Store from 'electron-store'
 
+declare const __BUILD_SECRET__: string
+
 interface AccountSchema {
   token: string | null
   email: string | null
@@ -25,6 +27,13 @@ const accountStore = new Store<AccountSchema>({
     apiUrl: 'https://purroxy-api.mreider.workers.dev'
   }
 })
+
+function apiHeaders(token?: string | null): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (__BUILD_SECRET__) headers['X-Build-Token'] = __BUILD_SECRET__
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  return headers
+}
 
 // Alpha: all features are free. Subscription enforcement will be enabled
 // when the app moves out of pre-release (v1.0.0+).
@@ -78,7 +87,7 @@ async function refreshFromServer(): Promise<boolean> {
   const apiUrl = accountStore.get('apiUrl')
   try {
     const res = await fetch(`${apiUrl}/api/stripe/status`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: apiHeaders(token)
     })
     const data = await res.json() as any
     if (data.subscription) {
@@ -112,7 +121,7 @@ export function setupAccount() {
     try {
       const res = await fetch(`${apiUrl}/api/signup`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: apiHeaders(),
         body: JSON.stringify({ email, password })
       })
       const data = await res.json() as any
@@ -136,7 +145,7 @@ export function setupAccount() {
     try {
       const res = await fetch(`${apiUrl}/api/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: apiHeaders(),
         body: JSON.stringify({ email, password })
       })
       const data = await res.json() as any
@@ -175,7 +184,7 @@ export function setupAccount() {
     const apiUrl = accountStore.get('apiUrl')
     try {
       const res = await fetch(`${apiUrl}/api/validate`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: apiHeaders(token)
       })
       const data = await res.json() as any
       if (data.subscription) {
@@ -198,10 +207,7 @@ export function setupAccount() {
     try {
       const res = await fetch(`${apiUrl}/api/stripe/create-checkout`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
+        headers: apiHeaders(token)
       })
       const data = await res.json() as any
       if (data.error) return { error: data.error }
@@ -223,10 +229,7 @@ export function setupAccount() {
     try {
       const res = await fetch(`${apiUrl}/api/stripe/portal`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
+        headers: apiHeaders(token)
       })
       const data = await res.json() as any
       if (data.error) return { error: data.error }

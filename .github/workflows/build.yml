@@ -48,6 +48,8 @@ jobs:
 
       - name: Build app
         run: npm run build
+        env:
+          PURROXY_BUILD_SECRET: ${{ secrets.PURROXY_BUILD_SECRET }}
 
       - name: Import signing certificate
         env:
@@ -97,6 +99,8 @@ jobs:
 
       - name: Build app
         run: npm run build
+        env:
+          PURROXY_BUILD_SECRET: ${{ secrets.PURROXY_BUILD_SECRET }}
 
       - name: Build Electron (Windows)
         run: npx electron-builder --win nsis --publish never
@@ -128,6 +132,8 @@ jobs:
 
       - name: Build app
         run: npm run build
+        env:
+          PURROXY_BUILD_SECRET: ${{ secrets.PURROXY_BUILD_SECRET }}
 
       - name: Build Electron (Linux)
         run: npx electron-builder --linux AppImage --publish never
