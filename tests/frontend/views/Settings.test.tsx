@@ -53,7 +53,7 @@ describe('Settings view', () => {
   // ════════════════════════════════════════════════════════════════════════════
 
   describe('AccountSection', () => {
-    it('renders alpha messaging and signup when logged out', async () => {
+    it('renders pre-release messaging and signup when logged out', async () => {
       const api = getPurroxyMock()
       api.account.getStatus.mockResolvedValue(buildAccountStatus())
       api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
@@ -63,11 +63,11 @@ describe('Settings view', () => {
       await waitFor(() => {
         expect(screen.getByText('Sign Up')).toBeInTheDocument()
         expect(screen.getByText('Log In')).toBeInTheDocument()
-        expect(screen.getByText(/Purroxy is in alpha/)).toBeInTheDocument()
+        expect(screen.getAllByText(/pre-release/).length).toBeGreaterThan(0)
       })
     })
 
-    it('shows alpha badge and grandfathering message when logged in', async () => {
+    it('shows pre-release badge when logged in', async () => {
       const api = getPurroxyMock()
       api.account.getStatus.mockResolvedValue(trialStatus())
       api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
@@ -75,9 +75,8 @@ describe('Settings view', () => {
       render(<Settings />)
 
       await waitFor(() => {
-        expect(screen.getByText('Alpha')).toBeInTheDocument()
-        expect(screen.getByText(/free during the alpha/)).toBeInTheDocument()
-        expect(screen.getByText(/grandfathered/)).toBeInTheDocument()
+        expect(screen.getByText('Pre-release')).toBeInTheDocument()
+        expect(screen.getByText(/free during pre-release/)).toBeInTheDocument()
       })
     })
 

@@ -203,7 +203,7 @@ export default function Community() {
         <div>
           <h2 className="text-xl font-semibold">Community</h2>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Discover and install capabilities built by others
+            Discover and install shared capabilities
           </p>
         </div>
         <button onClick={handleOpenPublish}
@@ -243,7 +243,7 @@ export default function Community() {
                 <p className="text-xs text-gray-500">{selectedCap.description || 'No description'}</p>
               )}
               <p className="text-[10px] text-gray-400">
-                Publishing shares your capability with the community and creates a review PR. When approved, you get free Purroxy access forever.
+                Creates a review PR. Approved submissions get free access.
               </p>
               <div className="flex gap-2 justify-end">
                 <button onClick={() => setShowPublish(false)} className="px-3 py-1.5 rounded-lg text-xs text-gray-500">Cancel</button>

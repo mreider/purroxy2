@@ -40,7 +40,7 @@ export default function Home() {
       {offline && (
         <div className="flex items-center gap-2 mb-4 px-4 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 text-xs text-amber-800 dark:text-amber-300">
           <WifiOff size={14} />
-          <span>You're offline. Saved capabilities can still run, but building new ones requires internet.</span>
+          <span>You're offline. Saved capabilities still work.</span>
         </div>
       )}
 
@@ -52,7 +52,7 @@ export default function Home() {
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter a website URL to get started..."
+              placeholder="Enter a website URL..."
               className="w-full pl-9 pr-3 py-3 rounded-lg bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
             />
           </div>
@@ -76,8 +76,7 @@ export default function Home() {
       <div className="mt-8 text-xs text-gray-400 dark:text-gray-600">
         {window.purroxy && (
           <span>
-            Purroxy v0.1.0 &middot; Electron {window.purroxy.versions.electron} &middot;{' '}
-            {window.purroxy.platform}
+            Electron {window.purroxy.versions.electron} &middot; {window.purroxy.platform}
           </span>
         )}
       </div>

@@ -56,7 +56,7 @@ export default function Vault() {
         <div>
           <h2 className="text-xl font-semibold">Vault</h2>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Encrypted storage for sensitive data. Values are injected at runtime and never sent to AI.
+            Encrypted storage for sensitive data. Never sent to Claude.
           </p>
         </div>
         <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-xs font-medium transition-colors">
@@ -100,7 +100,7 @@ export default function Vault() {
         <div className="mt-12 flex flex-col items-center text-center text-gray-400 dark:text-gray-600">
           <Lock size={40} className="mb-4 opacity-30" />
           <p>No vault entries yet</p>
-          <p className="text-sm mt-1">Store credit card numbers, account IDs, security answers, and other sensitive data</p>
+          <p className="text-sm mt-1">Store passwords, API keys, and other secrets</p>
         </div>
       ) : (
         <div className="space-y-1">

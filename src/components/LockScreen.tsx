@@ -28,7 +28,7 @@ export default function LockScreen({ onUnlock }: { onUnlock: () => void }) {
         <img src={logo} alt="Purroxy" className="w-16 h-16 rounded-2xl mb-4" />
         <h1 className="text-lg font-semibold mb-1">Purroxy is locked</h1>
         <p className="text-xs text-gray-400 dark:text-gray-500 mb-6 text-center">
-          Enter your PIN to unlock. All capabilities are blocked while locked.
+          Enter your PIN to unlock.
         </p>
 
         <form onSubmit={handleSubmit} className="w-full space-y-3">

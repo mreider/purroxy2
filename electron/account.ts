@@ -35,8 +35,8 @@ function apiHeaders(token?: string | null): Record<string, string> {
   return headers
 }
 
-// Alpha: all features are free. Subscription enforcement will be enabled
-// when the app moves out of pre-release (v1.0.0+).
+// Pre-release: all features are free. Subscription enforcement will be
+// enabled when the app reaches v1.0.0.
 const ALPHA = true
 
 export function isLicenseValid(): boolean {

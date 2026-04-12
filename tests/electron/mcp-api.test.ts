@@ -318,7 +318,6 @@ describe('electron/mcp-api', () => {
 
       expect(status).toBe(403)
       expect(data.error).toContain('locked')
-      expect(data.error).toContain('Unlock')
     })
 
     it('proceeds past lock check when not locked', async () => {

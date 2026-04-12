@@ -29,7 +29,7 @@ function getPort() {
 
 async function apiCall(path, method = 'GET', body = null) {
   const port = getPort()
-  if (!port) throw new Error('Purroxy is not running. Launch the Purroxy app first.')
+  if (!port) throw new Error('Purroxy is not running.')
   const url = `http://127.0.0.1:${port}${path}`
   const opts = { method, headers: { 'Content-Type': 'application/json' } }
   if (body) opts.body = JSON.stringify(body)
@@ -82,7 +82,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (!capId) {
       return {
-        content: [{ type: 'text', text: `Tool "${toolName}" not found. Purroxy may not be running, or the capability was deleted. Open Purroxy and check the Library.` }],
+        content: [{ type: 'text', text: `Tool "${toolName}" not found.` }],
         isError: true
       }
     }
@@ -106,7 +106,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       text += `\n\n(Note: ${result.error})`
     }
     if (!text) {
-      text = 'Capability executed but no data was extracted.'
+      text = 'No data extracted.'
     }
 
     return { content: [{ type: 'text', text }] }

@@ -107,8 +107,7 @@ describe('Library view', () => {
       expect(screen.getByText('Example')).toBeInTheDocument()
     })
 
-    // Find and click the delete button (it has title "Delete site and all capabilities")
-    const deleteButtons = screen.getAllByTitle('Delete site and all capabilities')
+    const deleteButtons = screen.getAllByTitle('Delete')
     fireEvent.click(deleteButtons[0])
 
     await waitFor(() => {
@@ -143,7 +142,7 @@ describe('Library view', () => {
     })
 
     // Click test button (has title "Test (headless)")
-    const testButtons = screen.getAllByTitle('Test (headless)')
+    const testButtons = screen.getAllByTitle('Test')
     fireEvent.click(testButtons[0])
 
     await waitFor(() => {
@@ -182,7 +181,7 @@ describe('Library view', () => {
       expect(screen.getByText('Test Cap')).toBeInTheDocument()
     })
 
-    const testButtons = screen.getAllByTitle('Test (headless)')
+    const testButtons = screen.getAllByTitle('Test')
     fireEvent.click(testButtons[0])
 
     await waitFor(() => {

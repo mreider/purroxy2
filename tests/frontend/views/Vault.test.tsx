@@ -39,7 +39,7 @@ describe('Vault view', () => {
 
     await waitFor(() => {
       expect(screen.getByText('No vault entries yet')).toBeInTheDocument()
-      expect(screen.getByText(/Store credit card numbers/)).toBeInTheDocument()
+      expect(screen.getByText(/Store passwords/)).toBeInTheDocument()
     })
   })
 

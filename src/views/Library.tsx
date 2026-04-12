@@ -138,16 +138,16 @@ export default function Library() {
                     <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{site.hostname}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {site.sessionEncrypted && <ShieldCheck size={14} className="text-green-500" title="Session saved" />}
+                    {site.sessionEncrypted && <ShieldCheck size={14} className="text-green-500" title="Secure session" />}
                     {siteCaps.length > 0 && (
                       <span className="text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded-full">{siteCaps.length}</span>
                     )}
                     <button onClick={(e) => { e.stopPropagation(); handleReRecord(site) }}
-                      className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-accent transition-colors" title="Build new capability">
+                      className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-accent transition-colors" title="Build capability">
                       <Zap size={12} />
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); handleDeleteSite(site.id) }}
-                      className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-red-500 transition-colors" title="Delete site and all capabilities">
+                      className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
                       <Trash2 size={12} />
                     </button>
                   </div>
@@ -200,11 +200,11 @@ export default function Library() {
                                     <Pencil size={12} />
                                   </button>
                                   <button onClick={() => handleTest(cap.id)} disabled={testing === cap.id}
-                                    className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-accent hover:text-accent-light transition-colors disabled:opacity-50" title="Test (headless)">
+                                    className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-accent hover:text-accent-light transition-colors disabled:opacity-50" title="Test">
                                     {testing === cap.id ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
                                   </button>
                                   <button onClick={() => handleTest(cap.id, true)} disabled={testing === cap.id}
-                                    className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-accent transition-colors disabled:opacity-50" title="Test (visible)">
+                                    className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-accent transition-colors disabled:opacity-50" title="Test visible">
                                     <Eye size={14} />
                                   </button>
                                   <button onClick={() => handleDeleteCapability(cap.id)}
@@ -231,7 +231,7 @@ export default function Library() {
                                     {testResult.result.success ? (
                                       <><CheckCircle size={12} className="text-green-600" /> <span className="font-medium text-green-800 dark:text-green-300">Test passed</span></>
                                     ) : partial ? (
-                                      <><AlertTriangle size={12} className="text-amber-600" /> <span className="font-medium text-amber-800 dark:text-amber-300">Partial — got data but some steps failed</span></>
+                                      <><AlertTriangle size={12} className="text-amber-600" /> <span className="font-medium text-amber-800 dark:text-amber-300">Partial — some steps failed</span></>
                                     ) : (
                                       <><AlertTriangle size={12} className="text-red-600" /> <span className="font-medium text-red-800 dark:text-red-300">Test failed</span></>
                                     )}

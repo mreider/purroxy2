@@ -68,7 +68,7 @@ export function startMCPApi(): number {
           // Block execution when app is locked
           if (isLocked()) {
             res.writeHead(403)
-            res.end(JSON.stringify({ error: 'Purroxy is locked. Unlock the app to run capabilities.' }))
+            res.end(JSON.stringify({ error: 'App is locked.' }))
             return
           }
 
@@ -78,7 +78,7 @@ export function startMCPApi(): number {
             res.writeHead(402)
             res.end(JSON.stringify({
               error: 'subscription_required',
-              message: 'Your free trial has ended. Subscribe or share a capability for free access.'
+              message: 'Subscribe or publish a capability to continue.'
             }))
             return
           }

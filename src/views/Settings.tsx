@@ -49,7 +49,7 @@ export default function Settings() {
         <ClaudeDesktopSection />
         <LockSection />
 
-        <SectionCard title="Anthropic API Key" description="Used for the AI guide when building capabilities. Stored locally.">
+        <SectionCard title="Anthropic API Key" description="For the AI guide. Stored locally.">
           <form onSubmit={handleSaveKey} className="flex gap-2">
             <div className="relative flex-1">
               <input
@@ -137,14 +137,14 @@ function AccountSection() {
   if (!status) return null
 
   return (
-    <SectionCard title="Account" description="Sign up to reserve your free alpha access.">
+    <SectionCard title="Account" description="Free during pre-release. Early signups are grandfathered.">
       {status.loggedIn ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium">{status.email}</p>
               <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/30">
-                Alpha
+                Pre-release
               </span>
             </div>
             <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
@@ -154,7 +154,7 @@ function AccountSection() {
 
           <div className="rounded-lg bg-green-50/50 dark:bg-green-900/10 border border-green-200/50 dark:border-green-800/20 p-3">
             <p className="text-xs text-green-800 dark:text-green-300">
-              All features are free during the alpha. Subscriptions are coming — your early account will be grandfathered in.
+              All features are free during pre-release.
             </p>
           </div>
 
@@ -196,7 +196,7 @@ function AccountSection() {
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Purroxy is in alpha — all features are free. Sign up now to lock in free access during pre-release.
+            All features are free during pre-release.
           </p>
           <div className="flex gap-2">
             <button onClick={() => setShowAuth('signup')} className="px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-xs font-medium transition-colors">
@@ -236,7 +236,7 @@ function ClaudeDesktopSection() {
   }
 
   return (
-    <SectionCard title="Claude Desktop" description="Let Claude Desktop run your Purroxy capabilities.">
+    <SectionCard title="Claude Desktop" description="Connect so Claude can use your capabilities.">
       {status === null ? (
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <Loader2 size={14} className="animate-spin" /> Checking...
@@ -262,7 +262,7 @@ function ClaudeDesktopSection() {
             </button>
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-            Restart Claude Desktop if you just connected.
+            Restart Claude Desktop to pick up changes.
           </p>
         </div>
       ) : (
@@ -276,7 +276,7 @@ function ClaudeDesktopSection() {
             )}
           </button>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-            Purroxy must be running for Claude to use your capabilities.
+            Purroxy must be running for Claude to connect.
           </p>
         </div>
       )}
@@ -323,7 +323,7 @@ function LockSection() {
   if (!config) return null
 
   return (
-    <SectionCard title="App Lock" description="Block all capability execution when locked.">
+    <SectionCard title="App Lock" description="Prevent capabilities from running when locked.">
       {config.enabled ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -438,7 +438,7 @@ function UpdateSection() {
   }
 
   return (
-    <SectionCard title="Updates" description="Keep Purroxy and its MCP server up to date.">
+    <SectionCard title="Updates" description="Check for new versions.">
       <div className="space-y-3">
         {/* Current version + check button */}
         {(!status || status.state === 'not-available' || status.state === 'error' || status.state === 'checking') && (
@@ -505,7 +505,7 @@ function UpdateSection() {
               </button>
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              The MCP server will restart automatically when Claude Desktop reconnects.
+              Claude Desktop will reconnect automatically.
             </p>
           </div>
         )}
