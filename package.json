@@ -1,6 +1,6 @@
 {
   "name": "purroxy",
-  "version": "1.0.0",
+  "version": "0.0.0-dev",
   "description": "Record what you do on any website. Securely automate it forever.",
   "main": "dist-electron/main.js",
   "scripts": {
