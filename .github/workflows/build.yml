@@ -245,6 +245,17 @@ jobs:
             artifacts/latest-linux.yml
           generate_release_notes: true
 
+      - name: Delete old releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CURRENT_TAG="${{ github.ref_name }}"
+          gh release list --json tagName --jq '.[].tagName' | while read tag; do
+            if [ "$tag" != "$CURRENT_TAG" ]; then
+              gh release delete "$tag" --yes --cleanup-tag || true
+            fi
+          done
+
   publish-npm:
     needs: [release]
     runs-on: ubuntu-latest
