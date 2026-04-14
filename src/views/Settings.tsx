@@ -215,6 +215,7 @@ function AccountSection() {
 function ClaudeDesktopSection() {
   const [status, setStatus] = useState<{ installed: boolean; connected: boolean; configPath?: string } | null>(null)
   const [connecting, setConnecting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const checkStatus = async () => {
     const s = await window.purroxy.claude.getStatus()
@@ -225,13 +226,22 @@ function ClaudeDesktopSection() {
 
   const handleConnect = async () => {
     setConnecting(true)
+    setError(null)
     const result = await window.purroxy.claude.connect()
-    if (result.success) await checkStatus()
+    if (result.success) {
+      await checkStatus()
+    } else {
+      setError(result.error || 'Connection failed')
+    }
     setConnecting(false)
   }
 
   const handleDisconnect = async () => {
-    await window.purroxy.claude.disconnect()
+    setError(null)
+    const result = await window.purroxy.claude.disconnect()
+    if (result.error) {
+      setError(result.error)
+    }
     await checkStatus()
   }
 
@@ -279,6 +289,9 @@ function ClaudeDesktopSection() {
             Purroxy must be running for Claude to connect.
           </p>
         </div>
+      )}
+      {error && (
+        <p className="text-xs text-red-500 mt-2">{error}</p>
       )}
     </SectionCard>
   )

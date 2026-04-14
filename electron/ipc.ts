@@ -1,7 +1,11 @@
-import { ipcMain, shell, clipboard } from 'electron'
+import { ipcMain, shell, clipboard, app, BrowserWindow, screen } from 'electron'
 import { store } from './store'
 import { getAllSites, createSite, saveSession, deleteSite } from './sites'
 import { getAllCapabilities, getCapabilitiesForSite, createCapability, deleteCapability, updateCapability } from './capabilities'
+import fs from 'fs'
+import path from 'path'
+import os from 'os'
+import { execSync, exec } from 'child_process'
 
 export function setupIPC() {
   // Settings
@@ -67,82 +71,96 @@ export function setupIPC() {
   // Claude Desktop integration
   ipcMain.handle('claude:getStatus', () => {
     const configPath = getClaudeConfigPath()
-    if (!configPath) return { installed: false, connected: false }
+    const configDir = path.dirname(configPath)
 
-    const fs = require('fs')
-    const path = require('path')
-
-    const installed = fs.existsSync(path.dirname(configPath))
-    if (!installed) return { installed: false, connected: false }
+    if (!fs.existsSync(configDir)) {
+      console.log('[claude] Config dir not found:', configDir)
+      return { installed: false, connected: false }
+    }
 
     try {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
       const connected = !!config?.mcpServers?.purroxy
+      console.log('[claude] Status — installed: true, connected:', connected)
       return { installed: true, connected, configPath }
     } catch {
+      console.log('[claude] Config dir exists but no valid config file at:', configPath)
       return { installed: true, connected: false, configPath }
     }
   })
 
   ipcMain.handle('claude:connect', () => {
-    const configPath = getClaudeConfigPath()
-    if (!configPath) return { error: 'Could not find Claude Desktop config location' }
-
-    const fs = require('fs')
-    const path = require('path')
-
-    // Get absolute path to mcp-server.mjs
-    // In packaged app, asarUnpack puts it at app.asar.unpacked/mcp-server.mjs
-    const appPath = require('electron').app.getAppPath()
-    const mcpServerPath = appPath.includes('.asar')
-      ? path.resolve(appPath.replace('.asar', '.asar.unpacked'), 'mcp-server.mjs')
-      : path.resolve(appPath, 'mcp-server.mjs')
-
-    // Read existing config or create new
-    let config: any = {}
     try {
-      config = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
-    } catch {
-      // Config doesn't exist yet — create directory
-      fs.mkdirSync(path.dirname(configPath), { recursive: true })
-    }
+      const configPath = getClaudeConfigPath()
 
-    // Add/update purroxy server
-    if (!config.mcpServers) config.mcpServers = {}
-    config.mcpServers.purroxy = {
-      command: 'node',
-      args: [mcpServerPath]
-    }
+      // Get absolute path to mcp-server.mjs
+      // In packaged app, asarUnpack puts it at app.asar.unpacked/mcp-server.mjs
+      const appPath = app.getAppPath()
+      const mcpServerPath = appPath.includes('.asar')
+        ? path.resolve(appPath.replace('.asar', '.asar.unpacked'), 'mcp-server.mjs')
+        : path.resolve(appPath, 'mcp-server.mjs')
 
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
-    return { success: true, configPath, mcpServerPath }
+      if (!fs.existsSync(mcpServerPath)) {
+        console.error('[claude] MCP server not found at:', mcpServerPath)
+        return { error: `MCP server not found at ${mcpServerPath}` }
+      }
+
+      // Read existing config or create new
+      let config: any = {}
+      try {
+        config = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
+      } catch {
+        // Config doesn't exist yet — create directory
+        console.log('[claude] No existing config, creating directory:', path.dirname(configPath))
+        fs.mkdirSync(path.dirname(configPath), { recursive: true })
+      }
+
+      // Add/update purroxy server
+      if (!config.mcpServers) config.mcpServers = {}
+      config.mcpServers.purroxy = {
+        command: 'node',
+        args: [mcpServerPath]
+      }
+
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
+      console.log('[claude] Connected — wrote config to:', configPath, 'server:', mcpServerPath)
+      return { success: true, configPath, mcpServerPath }
+    } catch (err: any) {
+      console.error('[claude] Connect failed:', err)
+      return { error: `Failed to connect: ${err.message}` }
+    }
   })
 
   ipcMain.handle('claude:disconnect', () => {
-    const configPath = getClaudeConfigPath()
-    if (!configPath) return { error: 'Config not found' }
-
-    const fs = require('fs')
     try {
+      const configPath = getClaudeConfigPath()
+
+      if (!fs.existsSync(configPath)) {
+        console.log('[claude] No config file to disconnect from:', configPath)
+        return { success: true }
+      }
+
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
       if (config?.mcpServers?.purroxy) {
         delete config.mcpServers.purroxy
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
+        console.log('[claude] Disconnected — removed purroxy from:', configPath)
+      } else {
+        console.log('[claude] Already disconnected (no purroxy entry in config)')
       }
       return { success: true }
-    } catch {
-      return { error: 'Failed to update config' }
+    } catch (err: any) {
+      console.error('[claude] Disconnect failed:', err)
+      return { error: `Failed to disconnect: ${err.message}` }
     }
   })
 
   // Window management
   let savedBounds: Electron.Rectangle | null = null
   ipcMain.handle('window:expandForRecording', () => {
-    const wins = require('electron').BrowserWindow.getAllWindows()
-    const win = wins[0]
+    const win = BrowserWindow.getAllWindows()[0]
     if (!win) return
     savedBounds = win.getBounds()
-    const { screen } = require('electron')
     const display = screen.getDisplayMatching(savedBounds)
     // Expand to ~90% of screen width, keep height
     const newWidth = Math.round(display.workArea.width * 0.9)
@@ -152,8 +170,7 @@ export function setupIPC() {
 
   ipcMain.handle('window:restoreSize', () => {
     if (!savedBounds) return
-    const wins = require('electron').BrowserWindow.getAllWindows()
-    const win = wins[0]
+    const win = BrowserWindow.getAllWindows()[0]
     if (!win) return
     win.setBounds(savedBounds, true)
     savedBounds = null
@@ -163,10 +180,6 @@ export function setupIPC() {
   ipcMain.handle('system:copyAndOpenClaude', async (_event, text: string) => {
     clipboard.writeText(text)
 
-    const { execSync, exec } = require('child_process')
-    const fs = require('fs')
-
-    // Check if Claude Desktop is installed
     let installed = false
     if (process.platform === 'darwin') {
       installed = fs.existsSync('/Applications/Claude.app')
@@ -189,11 +202,8 @@ export function setupIPC() {
   })
 }
 
-function getClaudeConfigPath(): string | null {
-  const path = require('path')
-  const os = require('os')
+function getClaudeConfigPath(): string {
   const home = os.homedir()
-
   if (process.platform === 'darwin') {
     return path.join(home, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json')
   } else if (process.platform === 'win32') {
