@@ -1,0 +1,46 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.KuvopLLC/purroxy2",
+  "description": "Record what you do on any website. Securely automate it forever. Purroxy replays your recorded browser actions as MCP tools.",
+  "repository": {
+    "url": "https://github.com/KuvopLLC/purroxy2",
+    "source": "github"
+  },
+  "version": "0.5.0",
+  "tools": [
+    {
+      "name": "purroxy_list_capabilities",
+      "description": "List all recorded capabilities available for replay"
+    },
+    {
+      "name": "purroxy_run_capability",
+      "description": "Replay a recorded browser capability with parameters and extract results"
+    },
+    {
+      "name": "purroxy_get_status",
+      "description": "Check if Purroxy is running and connected"
+    },
+    {
+      "name": "purroxy_login",
+      "description": "Open a site in the secure browser for login and session capture"
+    },
+    {
+      "name": "purroxy_record",
+      "description": "Start recording a new browser capability from user actions"
+    },
+    {
+      "name": "purroxy_extract_data",
+      "description": "Extract structured data from a page using CSS selectors"
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "purroxy",
+      "version": "0.5.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
