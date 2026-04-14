@@ -1,8 +1,9 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http'
-import { getAllCapabilities, getCapability } from './capabilities'
+import { getAllCapabilities, getCapability, updateCapability } from './capabilities'
 import { getAllSites, getSite, getSession } from './sites'
 import { getAllDecryptedValues } from './vault'
 import { isLocked } from './app-lock'
+import { isLicenseValid } from './account'
 import { PlaywrightEngine } from '../core/browser/playwright-engine'
 import { healSelector } from './healer'
 import { store } from './store'
@@ -73,7 +74,6 @@ export function startMCPApi(): number {
           }
 
           // Block execution when license is invalid
-          const { isLicenseValid } = require('./account')
           if (!isLicenseValid()) {
             res.writeHead(402)
             res.end(JSON.stringify({
@@ -137,7 +137,6 @@ export function startMCPApi(): number {
             // Persist AI-healed locators back into the capability
             const healed = engine.getHealedLocators()
             if (healed.length > 0) {
-              const { updateCapability } = require('./capabilities')
               const updatedActions = [...(cap.actions as any[])]
               for (const h of healed) {
                 const idx = h.actionIndex
