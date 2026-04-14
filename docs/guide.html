@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purroxy Documentation — Getting Started Guide</title>
+  <meta name="description" content="Complete guide to using Purroxy: record browser automations and run them from Claude Desktop.">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #ffffff; --bg-alt: #f8f9fb; --text: #1a1a2e; --text-muted: #6b7280;
+      --text-faint: #9ca3af; --accent: #6366f1; --accent-hover: #4f46e5;
+      --success: #16a34a; --success-bg: rgba(22,163,74,0.08); --success-border: rgba(22,163,74,0.2);
+      --warning-bg: rgba(234,179,8,0.08); --warning-border: rgba(234,179,8,0.25); --warning: #a16207;
+      --border: #e5e7eb; --card-bg: #ffffff; --code-bg: #1e1e2e; --code-text: #cdd6f4;
+      --sidebar-bg: #f8f9fb; --sidebar-border: #e5e7eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1117; --bg-alt: #1a1b26; --text: #e2e8f0; --text-muted: #94a3b8;
+        --text-faint: #64748b; --border: #2d2d3d; --card-bg: #1a1b26;
+        --code-bg: #12121a; --code-text: #a6adc8;
+        --success-bg: rgba(22,163,74,0.12); --success-border: rgba(22,163,74,0.25);
+        --warning-bg: rgba(234,179,8,0.12); --warning-border: rgba(234,179,8,0.25); --warning: #facc15;
+        --sidebar-bg: #14151f; --sidebar-border: #2d2d3d;
+      }
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+
+    /* Nav */
+    nav { max-width: 960px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; color: var(--text); text-decoration: none; }
+    .nav-brand img { width: 20px; height: 20px; border-radius: 4px; }
+    .nav-links { display: flex; gap: 20px; font-size: 14px; }
+    .nav-links a { color: var(--text-muted); text-decoration: none; } .nav-links a:hover { color: var(--text); }
+    .nav-links a.active { color: var(--accent); font-weight: 600; }
+
+    /* Layout */
+    .layout { max-width: 960px; margin: 0 auto; display: flex; gap: 0; min-height: calc(100vh - 120px); }
+    .sidebar { width: 220px; flex-shrink: 0; padding: 32px 0 32px 24px; position: sticky; top: 0; height: fit-content; max-height: 100vh; overflow-y: auto; }
+    .sidebar ul { list-style: none; }
+    .sidebar li { margin-bottom: 2px; }
+    .sidebar a { display: block; padding: 5px 12px; border-radius: 6px; font-size: 13px; color: var(--text-muted); text-decoration: none; transition: all 0.15s; }
+    .sidebar a:hover { color: var(--text); background: var(--bg-alt); text-decoration: none; }
+    .sidebar a.section-link { font-weight: 600; color: var(--text); padding-left: 12px; margin-top: 16px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .sidebar a.section-link:first-child { margin-top: 0; }
+    .sidebar a.section-link:hover { background: transparent; }
+    .content { flex: 1; min-width: 0; padding: 32px 24px 80px 40px; border-left: 1px solid var(--border); }
+
+    @media (max-width: 768px) {
+      .layout { flex-direction: column; }
+      .sidebar { width: 100%; position: static; padding: 16px 24px; border-bottom: 1px solid var(--border); }
+      .content { border-left: none; padding: 24px; }
+    }
+
+    /* Content typography */
+    .content h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+    .content h2 { font-size: 22px; font-weight: 700; margin-top: 48px; margin-bottom: 12px; padding-top: 24px; border-top: 1px solid var(--border); letter-spacing: -0.01em; }
+    .content h2:first-of-type { margin-top: 32px; border-top: none; padding-top: 0; }
+    .content h3 { font-size: 16px; font-weight: 600; margin-top: 28px; margin-bottom: 8px; }
+    .content p { margin-bottom: 14px; font-size: 15px; color: var(--text); }
+    .content ul, .content ol { margin-bottom: 14px; padding-left: 24px; font-size: 15px; }
+    .content li { margin-bottom: 6px; }
+    .content li::marker { color: var(--text-faint); }
+    .content strong { font-weight: 600; }
+    .content code { background: var(--bg-alt); border: 1px solid var(--border); padding: 1px 5px; border-radius: 4px; font-size: 13px; font-family: 'SF Mono', 'Fira Code', monospace; }
+    .content pre { background: var(--code-bg); color: var(--code-text); border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; overflow-x: auto; font-size: 13px; line-height: 1.6; font-family: 'SF Mono', 'Fira Code', monospace; }
+    .content pre code { background: none; border: none; padding: 0; font-size: inherit; }
+
+    /* Callouts */
+    .callout { border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; font-size: 14px; line-height: 1.6; }
+    .callout p { margin-bottom: 0; font-size: 14px; }
+    .callout-prerelease { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning); }
+    .callout-info { background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); color: var(--accent); }
+    .callout-success { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success); }
+    .callout-label { font-weight: 700; margin-right: 6px; }
+
+    /* Steps */
+    .steps { counter-reset: step; list-style: none; padding-left: 0; }
+    .steps > li { counter-increment: step; position: relative; padding-left: 40px; margin-bottom: 20px; }
+    .steps > li::before { content: counter(step); position: absolute; left: 0; top: 1px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .steps > li > strong { display: block; margin-bottom: 4px; }
+
+    /* Table */
+    .content table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 14px; }
+    .content th, .content td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .content th { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); }
+    .content td code { font-size: 12px; }
+
+    /* Footer */
+    footer { border-top: 1px solid var(--border); padding: 24px; }
+    .footer-inner { max-width: 960px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+    .footer-brand { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-faint); }
+    .footer-brand img { width: 20px; height: 20px; border-radius: 4px; }
+    .footer-links { display: flex; gap: 16px; font-size: 14px; }
+    .footer-links a { color: var(--text-faint); } .footer-links a:hover { color: var(--text); }
+
+    /* Kbd */
+    kbd { display: inline-block; padding: 2px 6px; font-size: 12px; font-family: 'SF Mono', 'Fira Code', monospace; background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 1px 0 var(--border); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand"><img src="/icon-192.png" alt="Purroxy"> Purroxy</a>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/guide" class="active">Docs</a>
+    <a href="https://github.com/KuvopLLC/purroxy2">GitHub</a>
+  </div>
+</nav>
+
+<div class="layout">
+  <!-- Sidebar navigation -->
+  <aside class="sidebar">
+    <ul>
+      <li><a href="#overview" class="section-link">Overview</a></li>
+      <li><a href="#pre-release">Pre-release notice</a></li>
+      <li><a href="#install">Installation</a></li>
+
+      <li><a href="#getting-started" class="section-link">Getting Started</a></li>
+      <li><a href="#create-account">Create an account</a></li>
+      <li><a href="#api-key">Add your API key</a></li>
+      <li><a href="#connect-claude">Connect Claude Desktop</a></li>
+
+      <li><a href="#capabilities" class="section-link">Capabilities</a></li>
+      <li><a href="#what-is-capability">What is a capability?</a></li>
+      <li><a href="#log-in">Step 1: Log in to a site</a></li>
+      <li><a href="#record">Step 2: Record actions</a></li>
+      <li><a href="#parameters">Step 3: Parameters</a></li>
+      <li><a href="#save">Step 4: Save</a></li>
+      <li><a href="#test">Testing capabilities</a></li>
+
+      <li><a href="#using-claude" class="section-link">Using with Claude</a></li>
+      <li><a href="#asking-claude">Asking Claude</a></li>
+      <li><a href="#how-execution-works">How execution works</a></li>
+      <li><a href="#self-healing">Self-healing</a></li>
+
+      <li><a href="#features" class="section-link">Features</a></li>
+      <li><a href="#library">Library</a></li>
+      <li><a href="#vault">Vault</a></li>
+      <li><a href="#app-lock">App lock</a></li>
+      <li><a href="#community">Community</a></li>
+
+      <li><a href="#security" class="section-link">Security</a></li>
+      <li><a href="#security-model">Security model</a></li>
+
+      <li><a href="#troubleshooting" class="section-link">Troubleshooting</a></li>
+      <li><a href="#common-issues">Common issues</a></li>
+      <li><a href="#getting-help">Getting help</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main content -->
+  <main class="content">
+    <h1>Purroxy Documentation</h1>
+    <p style="color: var(--text-muted); font-size: 16px; margin-bottom: 24px;">
+      Record what you do on any website. Securely automate it forever.
+    </p>
+
+    <!-- Pre-release notice -->
+    <div class="callout callout-prerelease" id="pre-release">
+      <p>
+        <span class="callout-label">Pre-release.</span>
+        Purroxy is in active development. Features may change, and you may encounter bugs.
+        All features are free during the pre-release period. Early accounts will be grandfathered when paid plans launch.
+        If you run into issues or have feedback, please
+        <a href="https://github.com/KuvopLLC/purroxy2/issues" style="color: inherit; text-decoration: underline;">open an issue on GitHub</a>.
+      </p>
+    </div>
+
+    <!-- ========== OVERVIEW ========== -->
+    <h2 id="overview">Overview</h2>
+    <p>
+      Purroxy is a desktop application that gives Claude secure access to websites behind your login.
+      You walk through a site in Purroxy's built-in browser, and every action you take is recorded as a
+      <strong>capability</strong>. At runtime, Purroxy replays those exact steps on your behalf using a
+      headless browser. Your credentials never leave your machine and are never sent to any AI.
+    </p>
+    <p>
+      Purroxy connects to <a href="https://claude.ai/download">Claude Desktop</a> via the
+      <a href="https://modelcontextprotocol.io">Model Context Protocol (MCP)</a>. Once connected, your
+      saved capabilities appear as tools that Claude can call, just like any other MCP tool. You ask Claude
+      in natural language, and Purroxy executes the browser automation locally.
+    </p>
+
+    <h3>The lifecycle at a glance</h3>
+    <ol class="steps">
+      <li>
+        <strong>Log in to a website</strong>
+        Open a URL in Purroxy's built-in browser and log in normally. Purroxy captures your session cookies &mdash; never your password.
+      </li>
+      <li>
+        <strong>Record a capability</strong>
+        Walk through the actions you want automated. Purroxy's AI guide watches and helps you refine the recording into a reusable capability with parameters.
+      </li>
+      <li>
+        <strong>Connect to Claude Desktop</strong>
+        One click in Settings. Purroxy registers as an MCP server and your capabilities become tools Claude can call.
+      </li>
+      <li>
+        <strong>Ask Claude</strong>
+        In Claude Desktop, ask for what you need in natural language. Claude calls the right capability, Purroxy replays it in a headless browser, and the results come back to the conversation.
+      </li>
+    </ol>
+
+    <!-- ========== INSTALLATION ========== -->
+    <h2 id="install">Installation</h2>
+    <p>
+      Download the latest release for your platform:
+    </p>
+    <p style="text-align: center; margin: 20px 0;">
+      <a href="https://github.com/KuvopLLC/purroxy2/releases/latest"
+        style="display: inline-block; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 15px; background: var(--accent); color: #fff; text-decoration: none;">
+        Download Purroxy
+      </a>
+    </p>
+    <p>Available for <strong>macOS</strong>, <strong>Windows</strong>, and <strong>Linux</strong>.</p>
+    <ul>
+      <li><strong>macOS:</strong> Open the <code>.dmg</code> and drag Purroxy to Applications. On first launch, right-click and choose Open if macOS blocks it.</li>
+      <li><strong>Windows:</strong> Run the <code>.exe</code> installer. If SmartScreen warns you, click "More info" then "Run anyway".</li>
+      <li><strong>Linux:</strong> Run the <code>.AppImage</code> directly, or extract it. You may need to <code>chmod +x</code> the file first.</li>
+    </ul>
+    <p>
+      Purroxy runs in the background with a system tray icon. Closing the window minimizes it to the tray &mdash; the app stays running so Claude can reach it.
+    </p>
+
+    <!-- ========== GETTING STARTED ========== -->
+    <h2 id="getting-started">Getting Started</h2>
+
+    <h3 id="create-account">Create an account</h3>
+    <p>
+      Open Purroxy and go to <strong>Settings &gt; Account</strong>. Click <strong>Sign Up</strong> and enter your email and a password (8+ characters). You'll receive a verification email &mdash; click the link to confirm.
+    </p>
+    <div class="callout callout-info">
+      <p>All features are free during the pre-release. No credit card required.</p>
+    </div>
+
+    <h3 id="api-key">Add your Anthropic API key</h3>
+    <p>
+      Purroxy uses the Anthropic API for its AI guide &mdash; the assistant that helps you build capabilities.
+      Go to <strong>Settings &gt; Anthropic API Key</strong> and paste your key (starts with <code>sk-ant-</code>).
+    </p>
+    <p>
+      You can get an API key from
+      <a href="https://console.anthropic.com/settings/keys">console.anthropic.com</a>.
+      The key is stored locally on your machine and only used for AI guide features inside Purroxy.
+    </p>
+
+    <h3 id="connect-claude">Connect to Claude Desktop</h3>
+    <p>
+      This is the step that lets Claude call your capabilities.
+    </p>
+    <ol>
+      <li>Make sure <a href="https://claude.ai/download">Claude Desktop</a> is installed.</li>
+      <li>In Purroxy, go to <strong>Settings &gt; Claude Desktop</strong>.</li>
+      <li>Click <strong>Connect to Claude Desktop</strong>.</li>
+      <li><strong>Restart Claude Desktop</strong> to pick up the new MCP server.</li>
+    </ol>
+    <p>
+      That's it. Purroxy writes a configuration entry to Claude Desktop's config file that points to Purroxy's
+      MCP server. As long as Purroxy is running, Claude can discover and execute your capabilities.
+    </p>
+    <div class="callout callout-info">
+      <p>Purroxy must be running for Claude to connect. If you quit Purroxy, Claude will report that the MCP server is unavailable.</p>
+    </div>
+
+    <!-- ========== CAPABILITIES ========== -->
+    <h2 id="capabilities">Building Capabilities</h2>
+
+    <h3 id="what-is-capability">What is a capability?</h3>
+    <p>
+      A <strong>capability</strong> is a recorded sequence of browser actions &mdash; clicks, typed text,
+      navigation &mdash; that Purroxy can replay automatically. Each capability belongs to a site profile
+      (which holds your encrypted session for that website) and can have <strong>parameters</strong> for
+      variable inputs and <strong>extraction rules</strong> to pull structured data from the result page.
+    </p>
+    <p>
+      For example, a "Search emails" capability for Yahoo Mail might:
+    </p>
+    <ul>
+      <li>Navigate to the inbox</li>
+      <li>Click the search box</li>
+      <li>Type a search term (parameter: <code>search_term</code>)</li>
+      <li>Press Enter</li>
+      <li>Extract the list of matching email subjects (extraction rule)</li>
+    </ul>
+    <p>
+      When Claude calls this capability with <code>{"search_term": "tax documents"}</code>, Purroxy opens a headless browser with your saved Yahoo session, replays those steps, and returns the extracted results.
+    </p>
+
+    <h3 id="log-in">Step 1: Log in to a website</h3>
+    <p>
+      On the <strong>Home</strong> screen, enter the URL of the website you want to automate and click <strong>Go</strong>.
+      Purroxy opens the site in its built-in browser alongside an AI guide panel.
+    </p>
+    <p>
+      If the site requires authentication, the AI guide will detect the login page and prompt you to log in.
+      <strong>Log in as you normally would</strong> &mdash; enter your username and password directly into the real
+      website. Purroxy never intercepts or stores your password. It only captures the resulting session cookies
+      after you've logged in.
+    </p>
+    <p>
+      Once you're logged in, the AI guide will show a <strong>"Done logging in"</strong> button. Click it to
+      save your session. Your session cookies are encrypted using your operating system's keychain and stored locally.
+    </p>
+    <div class="callout callout-success">
+      <p><span class="callout-label">Zero-knowledge login.</span> Purroxy never sees your password. It captures session cookies after you authenticate with the real website. The cookies are encrypted at rest using your OS keychain.</p>
+    </div>
+
+    <h3 id="record">Step 2: Record your actions</h3>
+    <p>
+      After saving your session, the AI guide will analyze the page and suggest capabilities you could build.
+      Choose one, or describe what you'd like to do in the chat. When you're ready, the guide will show a
+      <strong>"Start recording"</strong> button.
+    </p>
+    <p>
+      When recording starts:
+    </p>
+    <ul>
+      <li>The window expands so the embedded browser shows the full desktop layout (this ensures recording matches what replay will see).</li>
+      <li>A red indicator shows that recording is active.</li>
+      <li>Every <strong>click</strong>, <strong>typed text</strong>, <strong>navigation</strong>, and <strong>selection</strong> you make is captured as an action.</li>
+      <li>Purroxy records multiple selector strategies for each element (CSS, data-testid, ARIA role, structural path) to make replay resilient to minor page changes.</li>
+    </ul>
+    <p>
+      Walk through the exact steps you want automated. When you're done, the AI guide will show a
+      <strong>"Stop recording"</strong> button. Click it to finish.
+    </p>
+
+    <h3 id="parameters">Step 3: Define parameters</h3>
+    <p>
+      After recording, the AI guide analyzes your actions and identifies which values should be
+      <strong>parameters</strong> &mdash; inputs that change each time the capability runs.
+    </p>
+    <p>
+      For example, if you typed "tax documents" into a search box, the AI will suggest making that a
+      parameter called <code>search_term</code>. At runtime, Claude (or you) can pass any value for that parameter.
+    </p>
+    <p>
+      The AI also suggests <strong>extraction rules</strong> &mdash; CSS selectors that pull structured data
+      from the final page. This lets the capability return specific fields (like a list of email subjects or
+      an account balance) rather than raw page content.
+    </p>
+
+    <h3 id="save">Step 4: Save the capability</h3>
+    <p>
+      When the AI guide shows the <strong>"Save capability"</strong> button, click it. Purroxy will:
+    </p>
+    <ol>
+      <li>Generate a structured definition from your recording and chat context.</li>
+      <li>Name and describe the capability based on what you did.</li>
+      <li>Annotate each action with an intent (used for self-healing if selectors break).</li>
+      <li>Save everything locally.</li>
+    </ol>
+    <p>
+      The capability immediately becomes available to Claude Desktop. If Claude is already running, it will
+      discover the new capability within a few seconds (Purroxy's MCP server polls for changes every 5 seconds).
+    </p>
+    <p>
+      After saving, the AI guide will suggest how to use the capability with Claude &mdash; for example:
+      <em>"Search my Yahoo Mail for tax documents."</em>
+    </p>
+
+    <h3 id="test">Testing capabilities</h3>
+    <p>
+      Go to the <strong>Library</strong> view to see all your saved capabilities organized by site.
+      Each capability shows:
+    </p>
+    <ul>
+      <li>Number of recorded actions and parameters</li>
+      <li>Health status: <strong style="color: var(--success);">healthy</strong>, <strong style="color: #d97706;">degraded</strong> (some recent failures), or <strong style="color: #dc2626;">broken</strong> (consecutive failures)</li>
+      <li>Last run date</li>
+    </ul>
+    <p>You can test any capability two ways:</p>
+    <table>
+      <tr><th>Button</th><th>What it does</th></tr>
+      <tr>
+        <td>Play (headless)</td>
+        <td>Runs the capability in a headless browser. Fastest option &mdash; use this to quickly verify it works.</td>
+      </tr>
+      <tr>
+        <td>Eye (visible)</td>
+        <td>Runs the capability with the browser visible so you can watch each step. Useful for debugging.</td>
+      </tr>
+    </table>
+    <p>
+      Test results show whether the run succeeded, any extracted data, execution time, a screenshot of the
+      final page, and a detailed execution log.
+    </p>
+
+    <!-- ========== USING WITH CLAUDE ========== -->
+    <h2 id="using-claude">Using Capabilities with Claude</h2>
+
+    <h3 id="asking-claude">Asking Claude</h3>
+    <p>
+      Once Purroxy is connected and running, your capabilities appear as tools in Claude Desktop.
+      You don't need to use any special syntax &mdash; just ask naturally:
+    </p>
+    <ul>
+      <li><em>"Search my Yahoo Mail for messages about tax documents."</em></li>
+      <li><em>"Check my bank balance."</em></li>
+      <li><em>"Look up plate number ABC-1234 on the DMV portal."</em></li>
+    </ul>
+    <p>
+      Claude will match your request to the right capability, fill in the parameters from your message,
+      and call Purroxy to execute it. The results appear directly in the conversation.
+    </p>
+    <p>
+      You can also ask Claude to list available capabilities:
+      <em>"What Purroxy capabilities do I have?"</em>
+    </p>
+
+    <h3 id="how-execution-works">How execution works</h3>
+    <p>When Claude calls a capability, here's what happens behind the scenes:</p>
+    <ol class="steps">
+      <li>
+        <strong>Claude sends the request via MCP</strong>
+        Claude Desktop calls Purroxy's MCP server with the capability name and parameters.
+      </li>
+      <li>
+        <strong>Purroxy decrypts your session</strong>
+        The MCP server sends the request to the Purroxy desktop app's local API. Purroxy retrieves
+        the site profile and decrypts your saved session cookies using the OS keychain.
+      </li>
+      <li>
+        <strong>Headless browser launches</strong>
+        Purroxy launches a headless Chromium browser (via Playwright), injects your session cookies,
+        and navigates to the starting page.
+      </li>
+      <li>
+        <strong>Actions are replayed</strong>
+        Each recorded action is replayed in sequence: clicks, typing (with parameter values substituted),
+        navigation, waiting for elements to appear. If the capability uses vault values, those are injected
+        directly into form fields.
+      </li>
+      <li>
+        <strong>Data is extracted and scrubbed</strong>
+        Extraction rules pull structured data from the final page. Any vault values present in the page
+        content are scrubbed before Claude sees them. The scrubbed results are sent back to the conversation.
+      </li>
+    </ol>
+
+    <h3 id="self-healing">Self-healing</h3>
+    <p>
+      Websites change their HTML structure over time. When a recorded selector no longer matches an element
+      on the page, Purroxy doesn't just fail &mdash; it attempts to <strong>heal the selector</strong>
+      automatically.
+    </p>
+    <p>
+      Purroxy sends the current page DOM and the original action's intent to Claude, which identifies the
+      correct element in the updated layout. If healing succeeds, the capability continues running.
+      Health status in the Library tracks how reliably each capability runs over time.
+    </p>
+
+    <!-- ========== FEATURES ========== -->
+    <h2 id="features">Features</h2>
+
+    <h3 id="library">Library</h3>
+    <p>
+      The Library is your dashboard for managing site profiles and capabilities. From here you can:
+    </p>
+    <ul>
+      <li>View all sites and their capabilities, organized by hostname.</li>
+      <li>Test capabilities (headless or visible).</li>
+      <li>Rename capabilities.</li>
+      <li>Monitor health status.</li>
+      <li>Delete capabilities or entire site profiles.</li>
+      <li>Navigate back to the Builder to create new capabilities for an existing site.</li>
+    </ul>
+
+    <h3 id="vault">Vault</h3>
+    <p>
+      The <strong>Vault</strong> is encrypted storage for sensitive data that Purroxy types into form fields
+      on your behalf &mdash; credit card numbers, social security numbers, account IDs, or anything you
+      don't want Claude to see.
+    </p>
+    <p>How the vault works:</p>
+    <ul>
+      <li>Add key-value pairs in the Vault view (e.g., <code>credit_card</code> = <code>4111...</code>).</li>
+      <li>Values are encrypted using your OS keychain and stored locally.</li>
+      <li>During recording, if you type a vault value into a form field, Purroxy marks that action as vault-sourced.</li>
+      <li>At runtime, vault values are injected directly into the browser &mdash; they are <strong>never sent to Claude</strong>.</li>
+      <li>After execution, vault values are scrubbed from page content before results are returned to Claude.</li>
+    </ul>
+    <p>
+      You can peek at stored values (partially masked) or delete them from the Vault view.
+    </p>
+
+    <h3 id="app-lock">App lock</h3>
+    <p>
+      If other people have access to your computer, enable <strong>App Lock</strong> in Settings.
+      Set a 4+ digit PIN, and Purroxy will lock itself after a period of inactivity (configurable: 1, 5, 15, or 30 minutes).
+    </p>
+    <p>
+      When locked, all capability execution is blocked &mdash; even from Claude Desktop.
+      The MCP server returns an error telling the user to unlock Purroxy. This prevents
+      someone else from using your Claude Desktop session to trigger automations on your accounts.
+    </p>
+
+    <h3 id="community">Community library</h3>
+    <p>
+      The Community view lets you share capabilities you've built and install capabilities shared by others.
+    </p>
+    <ul>
+      <li><strong>Install:</strong> Browse or search for community capabilities. Click Install to add one to your Library. You'll still need to log in to the target site yourself &mdash; community capabilities include the automation steps but not anyone's credentials.</li>
+      <li><strong>Publish:</strong> Submit one of your capabilities for review. Purroxy creates a GitHub pull request. Once approved, the capability appears in the community library for everyone.</li>
+    </ul>
+    <div class="callout callout-success">
+      <p><span class="callout-label">Free forever.</span> Contribute a capability to the community library and your account stays free permanently, even after paid plans launch.</p>
+    </div>
+
+    <!-- ========== SECURITY ========== -->
+    <h2 id="security">Security</h2>
+
+    <h3 id="security-model">Security model</h3>
+    <p>
+      Purroxy's security is structural, not policy-based. Rather than telling AI "don't leak credentials,"
+      Purroxy removes sensitive data from the pipeline before AI ever sees it.
+    </p>
+
+    <table>
+      <tr><th>Layer</th><th>How it's protected</th></tr>
+      <tr>
+        <td><strong>Passwords</strong></td>
+        <td>Never captured. You log in through the real website. Purroxy only stores session cookies.</td>
+      </tr>
+      <tr>
+        <td><strong>Session cookies</strong></td>
+        <td>Encrypted at rest using the OS keychain (<code>safeStorage</code> API). Decrypted only at execution time, used to launch the headless browser, then discarded from memory.</td>
+      </tr>
+      <tr>
+        <td><strong>Vault values</strong></td>
+        <td>Encrypted with the OS keychain. Injected directly into browser form fields at runtime. Never included in API calls to Claude. Scrubbed from page content before results are returned.</td>
+      </tr>
+      <tr>
+        <td><strong>Page content</strong></td>
+        <td>Extracted locally on your machine. Vault values are scrubbed before any data is sent back through MCP. Extraction rules let you limit what's returned to specific fields.</td>
+      </tr>
+      <tr>
+        <td><strong>MCP communication</strong></td>
+        <td>The MCP server communicates with the Electron app via <code>127.0.0.1</code> (localhost only). The port is written to a local file; no external access.</td>
+      </tr>
+    </table>
+
+    <!-- ========== TROUBLESHOOTING ========== -->
+    <h2 id="troubleshooting">Troubleshooting</h2>
+
+    <h3 id="common-issues">Common issues</h3>
+
+    <h3>Claude says "Purroxy is not running"</h3>
+    <p>
+      The Purroxy desktop app must be running for Claude to use it. Check:
+    </p>
+    <ul>
+      <li>Is Purroxy open? Look for the tray icon. Closing the window minimizes to tray &mdash; it should still be running.</li>
+      <li>If you just installed Purroxy and connected it, <strong>restart Claude Desktop</strong>. Claude only discovers new MCP servers at launch.</li>
+    </ul>
+
+    <h3>Capability fails or returns wrong data</h3>
+    <ul>
+      <li><strong>Session expired:</strong> If the website logged you out, re-log in through Purroxy's Builder. Navigate to the site, log in, and save the session again.</li>
+      <li><strong>Page layout changed:</strong> Purroxy will attempt self-healing, but if the site changed significantly, you may need to re-record the capability. Go to Library, delete the broken one, and record a fresh version.</li>
+      <li><strong>Test with the Eye button:</strong> In the Library, use the visible test (Eye icon) to watch the browser replay and see where it gets stuck.</li>
+    </ul>
+
+    <h3>AI guide isn't working</h3>
+    <p>
+      The AI guide requires an Anthropic API key. Go to <strong>Settings &gt; Anthropic API Key</strong>
+      and make sure you have a valid key entered. The key is used to call the Claude API for page analysis
+      and capability generation.
+    </p>
+
+    <h3>Claude Desktop doesn't show Purroxy tools</h3>
+    <ol>
+      <li>Open Purroxy <strong>Settings &gt; Claude Desktop</strong> and verify it shows "Connected."</li>
+      <li>Restart Claude Desktop.</li>
+      <li>In Claude Desktop, start a new conversation and ask <em>"What Purroxy tools are available?"</em></li>
+      <li>If it still doesn't work, disconnect and reconnect in Purroxy Settings, then restart Claude Desktop again.</li>
+    </ol>
+
+    <h3>App is locked and I forgot my PIN</h3>
+    <p>
+      There is no PIN recovery. You'll need to reset the app data. On macOS, delete the Purroxy data folder at
+      <code>~/Library/Application Support/purroxy</code>. On Windows, it's in <code>%APPDATA%/purroxy</code>.
+      This will erase all saved sessions, capabilities, and vault entries.
+    </p>
+
+    <h3 id="getting-help">Getting help</h3>
+    <p>
+      If you're stuck or found a bug:
+    </p>
+    <ul>
+      <li>
+        <strong><a href="https://github.com/KuvopLLC/purroxy2/issues">Open a GitHub issue</a></strong> &mdash;
+        describe what you expected, what happened, and your platform (macOS/Windows/Linux). Screenshots and
+        execution logs (available in Library test results) help a lot.
+      </li>
+      <li>
+        <strong><a href="https://github.com/KuvopLLC/purroxy2">Browse the source</a></strong> &mdash;
+        Purroxy is open source (Apache 2.0). PRs welcome.
+      </li>
+    </ul>
+    <div class="callout callout-prerelease">
+      <p>
+        <span class="callout-label">Pre-release software.</span>
+        Expect rough edges. Your feedback directly shapes the product.
+        <a href="https://github.com/KuvopLLC/purroxy2/issues" style="color: inherit; text-decoration: underline;">Report issues here.</a>
+      </p>
+    </div>
+
+    <!-- ========== DEVELOPMENT ========== -->
+    <h2 id="development">Development</h2>
+    <p>Purroxy is open source. To run it locally:</p>
+    <pre><code>git clone https://github.com/KuvopLLC/purroxy2.git
+cd purroxy2
+npm install
+npm run dev        # Vite dev server + Electron
+npm test           # Run tests
+npm run package    # Build distributable</code></pre>
+    <p>For the backend (Cloudflare Worker):</p>
+    <pre><code>cd backend
+npm install
+npm run dev        # Local dev server
+npm test           # Run tests</code></pre>
+    <p>
+      The project uses React + TypeScript for the frontend, Electron for the desktop shell,
+      Playwright for browser automation, and the MCP SDK for Claude Desktop integration.
+    </p>
+    <p>
+      Licensed under <a href="https://github.com/KuvopLLC/purroxy2/blob/main/LICENSE">Apache 2.0</a>.
+      Contributions are welcome &mdash;
+      <a href="https://github.com/KuvopLLC/purroxy2/issues">check the issues</a> for good places to start.
+    </p>
+
+  </main>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand"><img src="/icon-192.png" alt="Purroxy"> Purroxy</div>
+    <div class="footer-links">
+      <a href="/guide">Docs</a>
+      <a href="https://github.com/KuvopLLC/purroxy2">GitHub</a>
+      <a href="https://github.com/KuvopLLC/purroxy2/issues">Report an issue</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Library, Lock, Users, Settings } from 'lucide-react'
+import { Home, Library, Lock, Users, Settings, BookOpen } from 'lucide-react'
 import logo from '../assets/logo.png'
 
 const navItems = [
@@ -37,6 +37,19 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      {/* Docs link — opens in default browser */}
+      <div className="mt-auto">
+        <a
+          href="https://purroxy.com/guide"
+          target="_blank"
+          rel="noreferrer"
+          className="no-drag w-10 h-10 flex items-center justify-center rounded-lg transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10"
+          title="Documentation"
+        >
+          <BookOpen size={20} />
+        </a>
+      </div>
     </aside>
   )
 }
