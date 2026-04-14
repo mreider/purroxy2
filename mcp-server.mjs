@@ -43,9 +43,11 @@ const STATIC_TOOLS = [
     name: 'purroxy_list_capabilities',
     description:
       'List all browser automation capabilities recorded in Purroxy. ' +
-      'Returns each capability\'s name, description, target website, and required parameters. ' +
-      'Call this first to discover what automations are available before executing one with purroxy_run_capability. ' +
-      'Requires the Purroxy desktop app to be running.',
+      'Returns a plain-text list of every capability with its name, target website hostname, description, and parameter details (name, required/optional, description). ' +
+      'The full list is returned in a single response with no pagination. ' +
+      'Call this tool first to discover available automations before executing one with purroxy_run_capability. ' +
+      'Requires the Purroxy desktop app to be running on the local machine. ' +
+      'Returns an error if the app is not running or unreachable.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -56,22 +58,27 @@ const STATIC_TOOLS = [
     name: 'purroxy_run_capability',
     description:
       'Execute a recorded browser automation capability by name. ' +
-      'Purroxy replays the recorded actions in a headless browser with saved session credentials, ' +
-      'then extracts and returns structured data from the resulting page. ' +
-      'Call purroxy_list_capabilities first to discover available capability names and their parameters. ' +
-      'Requires the Purroxy desktop app to be running.',
+      'Purroxy launches a headless browser with saved session credentials, replays the recorded actions, ' +
+      'and returns structured extracted data fields followed by the full page text content. ' +
+      'Typical execution takes 5–30 seconds depending on the number of steps and page load times. ' +
+      'Call purroxy_list_capabilities first to discover available capability names and their required parameters. ' +
+      'Possible failures: capability not found (check the name), Purroxy app not running, ' +
+      'site session expired (user must re-login in Purroxy), or page structure changed (Purroxy will attempt automatic selector healing). ' +
+      'Requires the Purroxy desktop app to be running on the local machine.',
     inputSchema: {
       type: 'object',
       properties: {
         capability_name: {
           type: 'string',
-          description: 'The name of the capability to execute, exactly as returned by purroxy_list_capabilities.'
+          description:
+            'The exact name of the capability to execute, as shown in the output of purroxy_list_capabilities. Case-insensitive.'
         },
         parameters: {
           type: 'object',
           description:
             'Input parameters for the capability as key-value string pairs. ' +
-            'Check purroxy_list_capabilities to see which parameters each capability accepts and which are required.',
+            'Use purroxy_list_capabilities to see which parameters each capability accepts, which are required, and their descriptions. ' +
+            'Omit this field or pass an empty object if the capability has no parameters.',
           additionalProperties: { type: 'string' }
         }
       },
@@ -81,9 +88,11 @@ const STATIC_TOOLS = [
   {
     name: 'purroxy_status',
     description:
-      'Check whether the Purroxy desktop app is running and reachable. ' +
-      'Returns the connection status and the number of available capabilities. ' +
-      'Use this to verify Purroxy is ready before attempting to run automations.',
+      'Check whether the Purroxy desktop app is running and reachable on the local machine. ' +
+      'Makes a lightweight HTTP call to the local Purroxy API (typically responds in under 100ms). ' +
+      'No authentication is required. ' +
+      'On success, returns a text message with the connection status and the number of available capabilities. ' +
+      'On failure, returns an error indicating the app is not running — the user must launch Purroxy before automations can be used.',
     inputSchema: {
       type: 'object',
       properties: {},
