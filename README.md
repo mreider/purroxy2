@@ -1,6 +1,9 @@
 # Purroxy
 
+[![purroxy2 MCP server](https://glama.ai/mcp/servers/KuvopLLC/purroxy2/badges/card.svg)](https://glama.ai/mcp/servers/KuvopLLC/purroxy2)
+
 [![Tests](https://github.com/KuvopLLC/purroxy2/actions/workflows/test.yml/badge.svg)](https://github.com/KuvopLLC/purroxy2/actions/workflows/test.yml)
+[![purroxy2 MCP server](https://glama.ai/mcp/servers/KuvopLLC/purroxy2/badges/score.svg)](https://glama.ai/mcp/servers/KuvopLLC/purroxy2)
 
 Record what you do on any website. Securely automate it forever.
 
