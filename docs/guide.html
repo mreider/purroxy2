@@ -122,7 +122,7 @@
       <li><a href="#install">Installation</a></li>
 
       <li><a href="#getting-started" class="section-link">Getting Started</a></li>
-      <li><a href="#create-account">Create an account</a></li>
+      <li><a href="#create-account">Create an account <span style="font-size:10px; color:var(--warning);">(soon)</span></a></li>
       <li><a href="#api-key">Add your API key</a></li>
       <li><a href="#connect-claude">Connect Claude Desktop</a></li>
 
@@ -143,7 +143,7 @@
       <li><a href="#library">Library</a></li>
       <li><a href="#vault">Vault</a></li>
       <li><a href="#app-lock">App lock</a></li>
-      <li><a href="#community">Community</a></li>
+      <li><a href="#community">Community <span style="font-size:10px; color:var(--warning);">(soon)</span></a></li>
 
       <li><a href="#security" class="section-link">Security</a></li>
       <li><a href="#security-model">Security model</a></li>
@@ -232,12 +232,16 @@
     <h2 id="getting-started">Getting Started</h2>
 
     <h3 id="create-account">Create an account</h3>
-    <p>
-      Open Purroxy and go to <strong>Settings &gt; Account</strong>. Click <strong>Sign Up</strong> and enter your email and a password (8+ characters). You'll receive a verification email &mdash; click the link to confirm.
-    </p>
-    <div class="callout callout-info">
-      <p>All features are free during the pre-release. No credit card required.</p>
+    <div class="callout callout-prerelease">
+      <p>
+        <span class="callout-label">Not available yet.</span>
+        Account creation is disabled in the current release. Purroxy is a local-only tool right now &mdash; no account is needed.
+        This feature will be enabled in a future release once cloud services are fully tested.
+      </p>
     </div>
+    <p>
+      <em>When available:</em> Open Purroxy and go to <strong>Settings &gt; Account</strong>. Click <strong>Sign Up</strong> and enter your email and a password (8+ characters). You'll receive a verification email &mdash; click the link to confirm.
+    </p>
 
     <h3 id="api-key">Add your Anthropic API key</h3>
     <p>
@@ -502,16 +506,20 @@
     </p>
 
     <h3 id="community">Community library</h3>
+    <div class="callout callout-prerelease">
+      <p>
+        <span class="callout-label">Not available yet.</span>
+        Community publishing, browsing, and installing are disabled in the current release.
+        These features require cloud services that are still being tested. You can still export/import capabilities manually from the Library.
+      </p>
+    </div>
     <p>
-      The Community view lets you share capabilities you've built and install capabilities shared by others.
+      <em>When available:</em> The Community view will let you share capabilities you've built and install capabilities shared by others.
     </p>
     <ul>
       <li><strong>Install:</strong> Browse or search for community capabilities. Click Install to add one to your Library. You'll still need to log in to the target site yourself &mdash; community capabilities include the automation steps but not anyone's credentials.</li>
       <li><strong>Publish:</strong> Submit one of your capabilities for review. Purroxy creates a GitHub pull request. Once approved, the capability appears in the community library for everyone.</li>
     </ul>
-    <div class="callout callout-success">
-      <p><span class="callout-label">Free forever.</span> Contribute a capability to the community library and your account stays free permanently, even after paid plans launch.</p>
-    </div>
 
     <!-- ========== SECURITY ========== -->
     <h2 id="security">Security</h2>

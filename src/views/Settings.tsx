@@ -2,6 +2,9 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Eye, EyeOff, Check, CheckCircle, Loader2, Link2, Unlink, Lock, Download, RotateCw, RefreshCw } from 'lucide-react'
 import { useSettings } from '../stores/settings'
 
+// NOTE: Account sign up/sign in is intentionally disabled.
+// Cloud features (accounts, publishing, community) are not yet ready for users.
+
 function SectionCard({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
     <section className="rounded-xl border border-black/5 dark:border-white/10 overflow-hidden">
@@ -90,140 +93,20 @@ export default function Settings() {
 }
 
 function AccountSection() {
-  const [status, setStatus] = useState<{
-    loggedIn: boolean; email: string | null; plan: string | null; status: string | null;
-    trialEndsAt: string | null; trialDaysLeft: number | null; accountType: string;
-    emailVerified: boolean; apiUrl: string
-  } | null>(null)
-  const [showAuth, setShowAuth] = useState<'login' | 'signup' | null>(null)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const refreshStatus = () => window.purroxy.account.getStatus().then(setStatus)
-
-  useEffect(() => {
-    refreshStatus()
-    const onFocus = () => refreshStatus()
-    window.addEventListener('focus', onFocus)
-    return () => window.removeEventListener('focus', onFocus)
-  }, [])
-
-  const handleAuth = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!showAuth || !email.trim() || !password.trim()) return
-    setLoading(true)
-    setError('')
-
-    if (showAuth === 'signup') {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-        setError('Please enter a valid email address')
-        setLoading(false)
-        return
-      }
-      if (password.length < 8) {
-        setError('Password must be at least 8 characters')
-        setLoading(false)
-        return
-      }
-    }
-
-    const result = showAuth === 'signup'
-      ? await window.purroxy.account.signup(email, password)
-      : await window.purroxy.account.login(email, password)
-    if (result.error) {
-      setError(result.error)
-    } else {
-      setShowAuth(null)
-      setEmail('')
-      setPassword('')
-      refreshStatus()
-    }
-    setLoading(false)
-  }
-
-  const handleLogout = async () => {
-    await window.purroxy.account.logout()
-    refreshStatus()
-  }
-
-  if (!status) return null
-
   return (
-    <SectionCard title="Account" description="Pre-release — free for early users. No guarantees of functionality. Report issues on GitHub.">
-      {status.loggedIn ? (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium">{status.email}</p>
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/30">
-                Pre-release
-              </span>
-            </div>
-            <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
-              Log out
-            </button>
-          </div>
-
-          <div className="rounded-lg bg-green-50/50 dark:bg-green-900/10 border border-green-200/50 dark:border-green-800/20 p-3">
-            <p className="text-xs text-green-800 dark:text-green-300">
-              All features are free during pre-release. This is pre-release software — functionality may change or break.{' '}
-              <a href="https://github.com/KuvopLLC/purroxy2/issues" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">Share feedback on GitHub</a>.
-            </p>
-          </div>
-
-          {!status.emailVerified && (
-            <p className="text-xs text-amber-600 dark:text-amber-400">
-              Check your email to verify your account.
-            </p>
-          )}
-
-          {error && <p className="text-xs text-red-500">{error}</p>}
-        </div>
-      ) : showAuth ? (
-        <form onSubmit={handleAuth} className="space-y-3">
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" autoFocus
-            className="w-full px-3 py-2 rounded-lg bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50" />
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password (8+ chars)"
-            className="w-full px-3 py-2 rounded-lg bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50" />
-          {error && <p className="text-xs text-red-500">{error}</p>}
-          <div className="flex items-center justify-between pt-1">
-            <p className="text-xs text-gray-400">
-              {showAuth === 'login' ? (
-                <>No account? <button type="button" onClick={() => { setShowAuth('signup'); setError('') }} className="text-accent hover:text-accent-light">Sign up</button></>
-              ) : (
-                <>Have an account? <button type="button" onClick={() => { setShowAuth('login'); setError('') }} className="text-accent hover:text-accent-light">Log in</button></>
-              )}
-            </p>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => { setShowAuth(null); setError(''); setEmail(''); setPassword('') }}
-                className="px-3 py-1.5 rounded-lg text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-                Cancel
-              </button>
-              <button type="submit" disabled={loading || !email.trim() || !password.trim()}
-                className="px-4 py-1.5 rounded-lg bg-accent text-white text-xs font-medium hover:bg-accent-light disabled:opacity-40 transition-colors">
-                {loading ? 'Loading...' : showAuth === 'signup' ? 'Create Account' : 'Log In'}
-              </button>
-            </div>
-          </div>
-        </form>
-      ) : (
-        <div className="space-y-3">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            All features are free during pre-release. No guarantees of functionality.{' '}
-            <a href="https://github.com/KuvopLLC/purroxy2/issues" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Share feedback on GitHub</a>.
+    <SectionCard title="Account" description="Accounts are not available yet.">
+      <div className="space-y-3">
+        <div className="rounded-lg bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/20 p-3">
+          <p className="text-xs text-amber-800 dark:text-amber-300">
+            Purroxy is currently a <strong>local-only</strong> tool. Sign up and sign in are disabled while
+            cloud features are being tested. Everything runs on your machine — no account needed.
           </p>
-          <div className="flex gap-2">
-            <button onClick={() => setShowAuth('signup')} className="px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-xs font-medium transition-colors">
-              Sign Up
-            </button>
-            <button onClick={() => setShowAuth('login')} className="px-3 py-1.5 rounded-lg bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300 text-xs font-medium hover:bg-black/10 dark:hover:bg-white/15 transition-colors">
-              Log In
-            </button>
-          </div>
         </div>
-      )}
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Accounts will be available in a future release.{' '}
+          <a href="https://github.com/KuvopLLC/purroxy2/issues" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Share feedback on GitHub</a>.
+        </p>
+      </div>
     </SectionCard>
   )
 }
