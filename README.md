@@ -7,6 +7,8 @@
 
 Record what you do on any website. Securely automate it forever.
 
+> **Pre-release software.** Purroxy is under active development. Functionality may be incomplete or break between updates — no guarantees are provided. If you run into issues or have feedback, please [open an issue on GitHub](https://github.com/KuvopLLC/purroxy2/issues).
+
 Purroxy gives Claude secure access to websites behind your login. You walk through a site in Purroxy's built-in browser, and every action you take is recorded as a capability. At runtime, Purroxy replays those exact steps on your behalf. Your credentials never leave your machine.
 
 ## Download
@@ -32,7 +34,7 @@ Purroxy connects to Claude Desktop via MCP. One-click setup in Settings. Your ca
 
 ## Pricing
 
-$3.89/month after a 14-day free trial. Or contribute a capability to the community library and use Purroxy free forever.
+Free during pre-release. Early accounts will be grandfathered when paid plans launch ($3.89/month). Or contribute a capability to the community library and use Purroxy free forever.
 
 ## Development
 

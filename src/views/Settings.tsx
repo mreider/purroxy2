@@ -151,7 +151,7 @@ function AccountSection() {
   if (!status) return null
 
   return (
-    <SectionCard title="Account" description="Free during pre-release. Early signups are grandfathered.">
+    <SectionCard title="Account" description="Pre-release — free for early users. No guarantees of functionality. Report issues on GitHub.">
       {status.loggedIn ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -168,7 +168,8 @@ function AccountSection() {
 
           <div className="rounded-lg bg-green-50/50 dark:bg-green-900/10 border border-green-200/50 dark:border-green-800/20 p-3">
             <p className="text-xs text-green-800 dark:text-green-300">
-              All features are free during pre-release.
+              All features are free during pre-release. This is pre-release software — functionality may change or break.{' '}
+              <a href="https://github.com/KuvopLLC/purroxy2/issues" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">Share feedback on GitHub</a>.
             </p>
           </div>
 
@@ -210,7 +211,8 @@ function AccountSection() {
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            All features are free during pre-release.
+            All features are free during pre-release. No guarantees of functionality.{' '}
+            <a href="https://github.com/KuvopLLC/purroxy2/issues" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Share feedback on GitHub</a>.
           </p>
           <div className="flex gap-2">
             <button onClick={() => setShowAuth('signup')} className="px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-light text-white text-xs font-medium transition-colors">
