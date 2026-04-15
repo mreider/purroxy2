@@ -4,7 +4,7 @@ import '@testing-library/jest-dom'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '../../setup/dom-setup'
 import { getPurroxyMock, resetPurroxyMock } from '../../setup/dom-setup'
-import { buildAccountStatus, trialStatus } from '../../factories/account-factory'
+import { buildAccountStatus } from '../../factories/account-factory'
 import { useSettings } from '../../../src/stores/settings'
 
 // Mock react-router-dom
@@ -53,7 +53,7 @@ describe('Settings view', () => {
   // ════════════════════════════════════════════════════════════════════════════
 
   describe('AccountSection', () => {
-    it('renders pre-release messaging and signup when logged out', async () => {
+    it('shows local-only message instead of sign up/in', async () => {
       const api = getPurroxyMock()
       api.account.getStatus.mockResolvedValue(buildAccountStatus())
       api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
@@ -61,36 +61,34 @@ describe('Settings view', () => {
       render(<Settings />)
 
       await waitFor(() => {
-        expect(screen.getByText('Sign Up')).toBeInTheDocument()
-        expect(screen.getByText('Log In')).toBeInTheDocument()
-        expect(screen.getAllByText(/pre-release/).length).toBeGreaterThan(0)
+        expect(screen.getByText(/local-only/)).toBeInTheDocument()
+        expect(screen.getByText(/Sign up and sign in are disabled/)).toBeInTheDocument()
+        expect(screen.queryByText('Sign Up')).not.toBeInTheDocument()
+        expect(screen.queryByText('Log In')).not.toBeInTheDocument()
       })
     })
 
-    it('shows pre-release badge when logged in', async () => {
+    it('shows accounts not available description', async () => {
       const api = getPurroxyMock()
-      api.account.getStatus.mockResolvedValue(trialStatus())
+      api.account.getStatus.mockResolvedValue(buildAccountStatus())
       api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
 
       render(<Settings />)
 
       await waitFor(() => {
-        expect(screen.getByText('Pre-release')).toBeInTheDocument()
-        expect(screen.getByText(/free during pre-release/)).toBeInTheDocument()
+        expect(screen.getByText(/Accounts will be available in a future release/)).toBeInTheDocument()
       })
     })
 
-    it('shows email verification notice when not verified', async () => {
+    it('links to GitHub for feedback', async () => {
       const api = getPurroxyMock()
-      api.account.getStatus.mockResolvedValue(
-        trialStatus({ emailVerified: false })
-      )
+      api.account.getStatus.mockResolvedValue(buildAccountStatus())
       api.claude.getStatus.mockResolvedValue({ installed: false, connected: false })
 
       render(<Settings />)
 
       await waitFor(() => {
-        expect(screen.getByText('Check your email to verify your account.')).toBeInTheDocument()
+        expect(screen.getByText(/Share feedback on GitHub/)).toBeInTheDocument()
       })
     })
   })
