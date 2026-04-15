@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Use — Purroxy</title>
+  <meta name="description" content="Purroxy terms of use.">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #ffffff; --text: #1a1a2e; --text-muted: #6b7280;
+      --text-faint: #9ca3af; --accent: #6366f1; --border: #e5e7eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1117; --text: #e2e8f0; --text-muted: #94a3b8;
+        --text-faint: #64748b; --border: #2d2d3d;
+      }
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+    .container { max-width: 700px; margin: 0 auto; padding: 60px 24px; }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    h2 { font-size: 18px; font-weight: 600; margin: 28px 0 8px; }
+    p, li { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
+    ul, ol { padding-left: 20px; }
+    a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+    code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; background: rgba(127,127,127,0.1); padding: 2px 5px; border-radius: 3px; }
+    .date { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+    .back-link { display: inline-block; font-size: 13px; font-weight: 500; margin-bottom: 16px; }
+    footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; font-size: 13px; color: var(--text-faint); }
+    footer a { color: var(--text-faint); text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <a href="/" class="back-link">&larr; purroxy.com</a>
+  <h1>Terms of Use</h1>
+  <p class="date">Effective date: April 15, 2026</p>
+
+  <h2>Overview</h2>
+  <p>Purroxy is open-source software developed by Kuvop LLC and released under the <a href="https://github.com/KuvopLLC/purroxy2/blob/main/LICENSE">Apache 2.0 License</a>. By using Purroxy, you agree to these terms.</p>
+
+  <h2>What Purroxy does</h2>
+  <p>Purroxy is a desktop application that records browser interactions and replays them as automated capabilities. It connects to Claude Desktop via the Model Context Protocol (MCP) so that Claude can execute your saved automations. Purroxy runs locally on your computer; the backend API handles only accounts and subscriptions.</p>
+
+  <h2>Your accounts and credentials</h2>
+  <ul>
+    <li>Purroxy accesses third-party websites using session cookies from your own authenticated sessions.</li>
+    <li>You are responsible for complying with the terms of service of any website you automate with Purroxy.</li>
+    <li>Purroxy never stores your passwords. It captures session cookies after you authenticate directly with the website.</li>
+    <li>Vault entries and session data are encrypted locally using your operating system's keychain. Kuvop LLC has no access to this data.</li>
+  </ul>
+
+  <h2>Acceptable use</h2>
+  <p>You agree not to use Purroxy to:</p>
+  <ul>
+    <li>Violate the terms of service of any website or online service.</li>
+    <li>Access accounts you are not authorized to use.</li>
+    <li>Scrape, harvest, or collect data in violation of applicable laws or regulations.</li>
+    <li>Perform actions that could harm, overload, or disrupt third-party services.</li>
+    <li>Circumvent security measures, rate limits, or access controls.</li>
+  </ul>
+  <p>Kuvop LLC may suspend or terminate accounts that violate these terms.</p>
+
+  <h2>Subscriptions and billing</h2>
+  <ul>
+    <li>Purroxy offers a free pre-release period. When paid plans launch, early accounts will be grandfathered at the current pricing.</li>
+    <li>Paid subscriptions are billed monthly through Stripe. You can manage or cancel your subscription at any time through the billing portal in Settings.</li>
+    <li>Contributors who publish an approved capability to the community library receive a free account permanently.</li>
+    <li>Refunds are handled on a case-by-case basis. Contact <a href="mailto:mreider@gmail.com">mreider@gmail.com</a>.</li>
+  </ul>
+
+  <h2>Community library</h2>
+  <ul>
+    <li>Capabilities you submit to the community library are reviewed via GitHub pull request before publication.</li>
+    <li>Submitted capabilities must not contain sensitive data, credentials, or personal information.</li>
+    <li>By submitting a capability, you grant Kuvop LLC a non-exclusive license to distribute it as part of the community library.</li>
+    <li>Kuvop LLC may remove community capabilities at any time for any reason.</li>
+  </ul>
+
+  <h2>Your data</h2>
+  <ul>
+    <li>Locally stored data (sessions, vault entries, capabilities) is under your control. Kuvop LLC cannot access it.</li>
+    <li>Server-side data (email, subscription records) is described in the <a href="/privacy">Privacy Policy</a>.</li>
+    <li>You can delete local data by removing the Purroxy application data folder. To delete server-side data, contact us.</li>
+  </ul>
+
+  <h2>Limitation of liability</h2>
+  <p>Purroxy is provided "as is" without warranty of any kind, express or implied. To the fullest extent permitted by law, Kuvop LLC shall not be liable for:</p>
+  <ul>
+    <li>Loss of data, credentials, or access to third-party services.</li>
+    <li>Actions taken by automated capabilities on your behalf, including unintended purchases, messages, or data modifications.</li>
+    <li>Website changes that cause capabilities to fail or behave unexpectedly.</li>
+    <li>Consequences of expired or revoked sessions.</li>
+    <li>Any indirect, incidental, special, or consequential damages arising from use of the software.</li>
+  </ul>
+  <p>You use Purroxy at your own risk. You are responsible for reviewing the results of automated capabilities before acting on them.</p>
+
+  <h2>Pre-release software</h2>
+  <p>Purroxy is in active development. Features may change, break, or be removed without notice. During pre-release, there are no uptime or reliability guarantees.</p>
+
+  <h2>Third-party services</h2>
+  <ul>
+    <li><strong>Anthropic (Claude)</strong> &mdash; governed by <a href="https://www.anthropic.com/terms">Anthropic's Terms of Service</a></li>
+    <li><strong>Stripe</strong> &mdash; governed by <a href="https://stripe.com/legal/consumer">Stripe's Terms of Service</a></li>
+    <li><strong>Cloudflare</strong> &mdash; governed by <a href="https://www.cloudflare.com/terms/">Cloudflare's Terms of Service</a></li>
+    <li><strong>Third-party websites</strong> &mdash; governed by their respective terms of service. You are responsible for compliance.</li>
+  </ul>
+
+  <h2>Changes</h2>
+  <p>These terms may be updated at this URL. Continued use of Purroxy after changes constitutes acceptance. Significant changes will be noted in the app's release notes.</p>
+
+  <h2>Contact</h2>
+  <p><a href="mailto:mreider@gmail.com">mreider@gmail.com</a> &middot; <a href="https://github.com/KuvopLLC/purroxy2/issues">GitHub Issues</a></p>
+
+  <footer>
+    <a href="/">purroxy.com</a> &middot;
+    <a href="/privacy">Privacy</a> &middot;
+    <a href="https://github.com/KuvopLLC/purroxy2">GitHub</a>
+    <br>&copy; 2026 Kuvop LLC
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Purroxy</title>
+  <meta name="description" content="Purroxy privacy policy. How your data is handled, stored, and protected.">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #ffffff; --text: #1a1a2e; --text-muted: #6b7280;
+      --text-faint: #9ca3af; --accent: #6366f1; --border: #e5e7eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1117; --text: #e2e8f0; --text-muted: #94a3b8;
+        --text-faint: #64748b; --border: #2d2d3d;
+      }
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+    .container { max-width: 700px; margin: 0 auto; padding: 60px 24px; }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    h2 { font-size: 18px; font-weight: 600; margin: 28px 0 8px; }
+    p, li { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
+    ul { padding-left: 20px; }
+    a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+    code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; background: rgba(127,127,127,0.1); padding: 2px 5px; border-radius: 3px; }
+    .date { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+    .back-link { display: inline-block; font-size: 13px; font-weight: 500; margin-bottom: 16px; }
+    footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; font-size: 13px; color: var(--text-faint); }
+    footer a { color: var(--text-faint); text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <a href="/" class="back-link">&larr; purroxy.com</a>
+  <h1>Privacy Policy</h1>
+  <p class="date">Effective date: April 15, 2026</p>
+
+  <h2>What Purroxy is</h2>
+  <p>Purroxy is a desktop application by Kuvop LLC that records browser automations and replays them on your behalf via Claude Desktop. It consists of an Electron desktop app that runs on your computer and a backend API that handles accounts and subscriptions.</p>
+
+  <h2>Data stored on your machine</h2>
+  <p>The following data is stored locally on your computer and <strong>never sent to any server</strong>:</p>
+  <ul>
+    <li><strong>Session cookies</strong> &mdash; encrypted using your operating system's keychain (<code>safeStorage</code> API). Used to authenticate with websites during capability replay. Purroxy never stores your passwords.</li>
+    <li><strong>Vault entries</strong> &mdash; sensitive values (credit card numbers, account IDs, etc.) encrypted with your OS keychain. Injected directly into browser form fields at runtime. Never sent to Claude, Anthropic, or Kuvop LLC.</li>
+    <li><strong>Capabilities</strong> &mdash; recorded browser actions, parameters, and extraction rules. Stored in local application data.</li>
+    <li><strong>Site profiles</strong> &mdash; hostname, favicon URL, and encrypted session data for each website you use with Purroxy.</li>
+    <li><strong>App lock PIN</strong> &mdash; stored as a hash locally. No recovery mechanism exists.</li>
+    <li><strong>Anthropic API key</strong> &mdash; stored locally, used only for the AI guide feature within the app.</li>
+  </ul>
+
+  <h2>Data collected by our server</h2>
+  <p>When you create a Purroxy account, the following data is stored on our backend (hosted on Cloudflare Workers with a D1 database):</p>
+  <ul>
+    <li><strong>Email address</strong> &mdash; used for account identification, email verification, and password resets.</li>
+    <li><strong>Password hash</strong> &mdash; your password is hashed with bcrypt before storage. We never store or have access to your plaintext password.</li>
+    <li><strong>Subscription status</strong> &mdash; plan type (trial, monthly, contributor) and Stripe customer ID for billing.</li>
+    <li><strong>Community submissions</strong> &mdash; if you publish a capability to the community library, the capability name, description, hostname, and automation steps are stored on the server and submitted as a GitHub pull request for review.</li>
+  </ul>
+  <p>We do <strong>not</strong> collect:</p>
+  <ul>
+    <li>Analytics or telemetry</li>
+    <li>Website URLs you visit</li>
+    <li>Capability recordings or their content</li>
+    <li>Session cookies or vault entries</li>
+    <li>Page content from websites you automate</li>
+    <li>Your Anthropic API key</li>
+  </ul>
+
+  <h2>How Purroxy protects your data at runtime</h2>
+  <p>When Claude executes a capability through Purroxy:</p>
+  <ul>
+    <li>Session cookies are decrypted only at execution time, used to launch a local headless browser, then discarded from memory.</li>
+    <li>Vault values are injected directly into browser form fields &mdash; they are never included in any API call to Claude or Anthropic.</li>
+    <li>Page content is extracted locally. Vault values are scrubbed from results before anything is returned to Claude via MCP.</li>
+    <li>The MCP server communicates with the desktop app over <code>127.0.0.1</code> (localhost only). No external network access.</li>
+  </ul>
+
+  <h2>Third-party services</h2>
+  <ul>
+    <li><strong>Anthropic (Claude)</strong> &mdash; the AI guide feature calls the Claude API using your own API key. Claude Desktop communicates with Purroxy via MCP. Page content returned through MCP may be sent to Anthropic as part of your conversation, subject to <a href="https://www.anthropic.com/privacy">Anthropic's Privacy Policy</a>.</li>
+    <li><strong>Stripe</strong> &mdash; payment processing for subscriptions. We share your email with Stripe to create a billing account. Stripe's handling of payment data is governed by <a href="https://stripe.com/privacy">Stripe's Privacy Policy</a>. We never see or store your credit card number.</li>
+    <li><strong>Cloudflare</strong> &mdash; our backend API runs on Cloudflare Workers. Account data is stored in Cloudflare D1. Governed by <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's Privacy Policy</a>.</li>
+    <li><strong>GitHub</strong> &mdash; community capability submissions are created as GitHub pull requests for review. Your email address is not included in the PR.</li>
+    <li><strong>Resend</strong> &mdash; used to send verification and password reset emails. Your email address is shared with Resend for this purpose only.</li>
+  </ul>
+
+  <h2>Data deletion</h2>
+  <p>To remove locally stored data:</p>
+  <ul>
+    <li><strong>macOS:</strong> Delete <code>~/Library/Application Support/purroxy</code></li>
+    <li><strong>Windows:</strong> Delete <code>%APPDATA%/purroxy</code></li>
+    <li><strong>Linux:</strong> Delete <code>~/.config/purroxy</code></li>
+  </ul>
+  <p>To delete your server-side account, contact <a href="mailto:mreider@gmail.com">mreider@gmail.com</a>. We will delete your account, subscription records, and any community submissions.</p>
+
+  <h2>Open source</h2>
+  <p>Purroxy is open source under the Apache 2.0 license. You can audit the code at <a href="https://github.com/KuvopLLC/purroxy2">github.com/KuvopLLC/purroxy2</a>.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>If this policy changes, the updated version will be posted at this URL. Significant changes will be noted in the app's release notes.</p>
+
+  <h2>Contact</h2>
+  <p>Questions or concerns: <a href="mailto:mreider@gmail.com">mreider@gmail.com</a></p>
+  <p>Issues: <a href="https://github.com/KuvopLLC/purroxy2/issues">github.com/KuvopLLC/purroxy2/issues</a></p>
+
+  <footer>
+    <a href="/">purroxy.com</a> &middot;
+    <a href="/terms">Terms</a> &middot;
+    <a href="https://github.com/KuvopLLC/purroxy2">GitHub</a>
+    <br>&copy; 2026 Kuvop LLC
+  </footer>
+
+</div>
+</body>
+</html>
