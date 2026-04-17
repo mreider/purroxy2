@@ -63,6 +63,9 @@
     "win": {
       "icon": "build/icon.ico"
     },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
     "linux": {
       "icon": "build/icon.png",
       "category": "Utility"
