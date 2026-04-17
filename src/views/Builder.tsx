@@ -114,6 +114,12 @@ export default function Builder() {
       context += `\n\nExisting capabilities for this site:\n${siteCaps.map(c => `- "${c.name}": ${c.description}`).join('\n')}`
     }
 
+    // Tell the AI whether a session is already saved. Without this, it has to
+    // guess from page DOM alone and sometimes asks "what do you want to build?"
+    // before the user has logged in.
+    const hasSavedSession = sessionSaved || !!(siteProfile && (siteProfile as any).sessionEncrypted)
+    context += `\n\nSaved session for this site: ${hasSavedSession ? 'yes' : 'no'}`
+
     const currentActions = actionsRef.current
     if (currentActions.length > 0) {
       const recent = currentActions.slice(-20)
