@@ -120,10 +120,13 @@ export class PlaywrightEngine {
           failedSteps++
           this.addLog(`  -> FAILED (skipping): ${err.message}`)
 
-          // If a navigation dumped us onto Chrome's network-error page, no later
-          // step can succeed (DOM is chrome-error://chromewebdata/). Bail instead
-          // of spending 10+ seconds running selectors against the error page.
-          if (this.page.url().startsWith('chrome-error://')) {
+          // A failed navigate is fatal: later steps all assume we're on the
+          // target page. Also bail if the browser is already stuck on Chrome's
+          // network-error page from an earlier nav (goto throws before
+          // chrome-error:// is committed, so we may only notice one step late).
+          const navFailed = action.type === 'navigate'
+          const onErrorPage = this.page.url().startsWith('chrome-error://')
+          if (navFailed || onErrorPage) {
             unreachableError = err.message
             const skipped = optimized.length - i - 1
             this.addLog(`  -> Site unreachable; aborting${skipped > 0 ? ` remaining ${skipped} step(s)` : ''}.`)

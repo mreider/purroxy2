@@ -229,7 +229,8 @@ describe('PlaywrightEngine', () => {
       expect(result.success).toBe(true)
     })
 
-    it('continues on action failure and counts failed steps', async () => {
+    it('aborts with transient error when nav fails', async () => {
+      // Nav failures are fatal: every later step assumes we're on the target page.
       mockPage.goto.mockRejectedValueOnce(new Error('net::err'))
       const actions = [
         buildNavigateAction({ url: 'https://fail.com' }),
@@ -237,7 +238,10 @@ describe('PlaywrightEngine', () => {
       ]
       const result = await engine.execute(actions, [], {}, [])
       expect(result.success).toBe(false)
-      expect(result.error).toContain('1 action(s) failed')
+      expect(result.errorType).toBe('transient')
+      expect(result.error).toContain('Site unreachable')
+      // Second nav must not run after the abort
+      expect(mockPage.goto).toHaveBeenCalledTimes(1)
     })
 
     it('returns success=true when 0 failures', async () => {
@@ -293,11 +297,13 @@ describe('PlaywrightEngine', () => {
       expect(result.log.length).toBeGreaterThan(0)
     })
 
-    it('returns errorType site_changed when actions fail', async () => {
+    it('returns errorType transient when a nav fails', async () => {
+      // Nav failures now classify as transient (unreachable) since continuing
+      // can't recover — we treat them as transport-level issues.
       mockPage.goto.mockRejectedValue(new Error('fail'))
       const actions = [buildNavigateAction()]
       const result = await engine.execute(actions, [], {}, [])
-      expect(result.errorType).toBe('site_changed')
+      expect(result.errorType).toBe('transient')
     })
 
     it('aborts remaining steps when nav dumps browser on chrome-error page', async () => {
@@ -316,6 +322,25 @@ describe('PlaywrightEngine', () => {
       expect(result.error).toMatch(/Site unreachable.*ERR_HTTP2_PROTOCOL_ERROR/)
       expect(result.log.some(l => l.includes('Site unreachable; aborting remaining 2 step(s)'))).toBe(true)
       expect(result.screenshot).toBeDefined()
+    })
+
+    it('aborts immediately when a nav fails even before chrome-error is committed', async () => {
+      // page.goto can throw before Chromium commits chrome-error://, so url()
+      // returns something non-error (e.g. about:blank). A failed nav is still fatal.
+      mockPage.goto.mockRejectedValueOnce(new Error('page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://united.com/'))
+      mockPage.url.mockReturnValue('about:blank')
+      const actions = [
+        buildNavigateAction({ url: 'https://united.com' }),
+        buildClickAction({ locators: [{ strategy: 'css', value: '#loginButton' }] }),
+        buildClickAction({ locators: [{ strategy: 'css', value: '#profile' }] })
+      ]
+      const result = await engine.execute(actions, [], {}, [])
+
+      expect(mockPage.goto).toHaveBeenCalledTimes(1)
+      expect(result.success).toBe(false)
+      expect(result.errorType).toBe('transient')
+      expect(result.error).toMatch(/Site unreachable.*ERR_HTTP2_PROTOCOL_ERROR/)
+      expect(result.log.some(l => l.includes('Site unreachable; aborting remaining 2 step(s)'))).toBe(true)
     })
   })
 
@@ -1114,11 +1139,12 @@ describe('PlaywrightEngine', () => {
     })
 
     it('classifies "could not find element" as site_changed', async () => {
-      // This classification is tested via the per-action path which sets errorType to site_changed
-      mockPage.goto.mockRejectedValue(new Error('could not find element'))
+      // Route the error through the settle phase so classifyError runs.
+      mockPage.waitForTimeout.mockImplementation(async (ms: number) => {
+        if (ms === 1500) throw new Error('could not find element: #missing')
+      })
       const actions = [buildNavigateAction()]
       const result = await engine.execute(actions, [], {}, [])
-      // Per-action failures set errorType to 'site_changed'
       expect(result.errorType).toBe('site_changed')
     })
 
