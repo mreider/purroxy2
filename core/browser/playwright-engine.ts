@@ -108,6 +108,7 @@ export class PlaywrightEngine {
       this.addLog(`Optimized: ${resolvedActions.length} actions → ${optimized.length} (removed waits + duplicate navs)`)
 
       let failedSteps = 0
+      let unreachableError: string | null = null
       for (let i = 0; i < optimized.length; i++) {
         const action = optimized[i]
         this.addLog(`Step ${i + 1}/${optimized.length}: ${action.type} ${action.selector || action.url || ''} ${action.label ? '(' + action.label + ')' : ''}`.trim())
@@ -118,6 +119,29 @@ export class PlaywrightEngine {
         } catch (err: any) {
           failedSteps++
           this.addLog(`  -> FAILED (skipping): ${err.message}`)
+
+          // If a navigation dumped us onto Chrome's network-error page, no later
+          // step can succeed (DOM is chrome-error://chromewebdata/). Bail instead
+          // of spending 10+ seconds running selectors against the error page.
+          if (this.page.url().startsWith('chrome-error://')) {
+            unreachableError = err.message
+            const skipped = optimized.length - i - 1
+            this.addLog(`  -> Site unreachable; aborting${skipped > 0 ? ` remaining ${skipped} step(s)` : ''}.`)
+            break
+          }
+        }
+      }
+
+      if (unreachableError) {
+        const screenshotBuffer = await this.page.screenshot({ type: 'png' })
+        return {
+          success: false,
+          data: {},
+          error: `Site unreachable: ${unreachableError}`,
+          errorType: 'transient',
+          durationMs: Date.now() - startTime,
+          screenshot: screenshotBuffer.toString('base64'),
+          log: this.log
         }
       }
 

@@ -299,6 +299,24 @@ describe('PlaywrightEngine', () => {
       const result = await engine.execute(actions, [], {}, [])
       expect(result.errorType).toBe('site_changed')
     })
+
+    it('aborts remaining steps when nav dumps browser on chrome-error page', async () => {
+      mockPage.goto.mockRejectedValueOnce(new Error('page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://united.com/'))
+      mockPage.url.mockReturnValue('chrome-error://chromewebdata/')
+      const actions = [
+        buildNavigateAction({ url: 'https://united.com' }),
+        buildClickAction({ locators: [{ strategy: 'css', value: '#nav' }] }),
+        buildNavigateAction({ url: 'https://united.com/account' })
+      ]
+      const result = await engine.execute(actions, [], {}, [])
+
+      expect(mockPage.goto).toHaveBeenCalledTimes(1)
+      expect(result.success).toBe(false)
+      expect(result.errorType).toBe('transient')
+      expect(result.error).toMatch(/Site unreachable.*ERR_HTTP2_PROTOCOL_ERROR/)
+      expect(result.log.some(l => l.includes('Site unreachable; aborting remaining 2 step(s)'))).toBe(true)
+      expect(result.screenshot).toBeDefined()
+    })
   })
 
   // ════════════════════════════════════════════════════════════════════════════
