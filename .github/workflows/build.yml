@@ -247,6 +247,34 @@ jobs:
             artifacts/latest.yml
             artifacts/latest-linux.yml
           generate_release_notes: true
+          body: |
+            Purroxy lets you record what you do on any website and turn it into a secure, AI-callable automation. Your credentials stay on your machine; Claude never sees them.
+
+            **This is a pre-release.** Feedback and bug reports welcome via [GitHub issues](https://github.com/KuvopLLC/purroxy2/issues).
+
+            ## Install
+
+            - **macOS** — Download the `.dmg` below
+            - **Windows** — Download `Purroxy-Setup-${{ github.ref_name }}.exe`
+            - **Linux** — Download the `.AppImage`
+
+            All release binaries have a GitHub build attestation. Verify with `gh attestation verify <file> --owner KuvopLLC`.
+
+            ## What it does
+
+            - Record web actions (click, type, navigate, extract) as reusable **capabilities**
+            - Replay via **Claude Desktop** over MCP — your capabilities become tools Claude can call
+            - Credentials encrypted in your OS keychain, never sent to any AI
+            - Vault values (cards, account IDs) typed directly into forms and scrubbed before page content reaches Claude
+
+            ## Known limitations
+
+            - Sites with aggressive bot detection (some airlines, some banks) may block automation
+            - Capabilities need re-recording when sites change
+            - Session expiry requires re-login
+            - No Linux code signing yet
+
+            ---
 
       - name: Delete old releases
         env:

@@ -4,3 +4,6 @@ dist-electron/
 release/
 .env
 *.local
+.claude/
+tsconfig.node.tsbuildinfo
+Dockerfile

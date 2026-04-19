@@ -41,7 +41,7 @@ Free during pre-release. Early accounts will be grandfathered when paid plans la
 ```bash
 npm install
 npm run dev        # Vite dev server + Electron
-npm test           # Run 559 tests
+npm test           # Run tests
 npm run package    # Build distributable
 ```
 
@@ -49,7 +49,7 @@ Backend (Cloudflare Worker):
 ```bash
 cd backend
 npm install
-npm test           # Run 139 tests
+npm test           # Run backend tests
 npm run dev        # Local dev server
 npm run deploy     # Deploy to Cloudflare
 ```
