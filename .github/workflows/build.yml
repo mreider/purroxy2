@@ -255,7 +255,7 @@ jobs:
             ## Install
 
             - **macOS** — Download the `.dmg` below
-            - **Windows** — Download `Purroxy-Setup-${{ github.ref_name }}.exe`
+            - **Windows** — Download the `.exe` installer
             - **Linux** — Download the `.AppImage`
 
             All release binaries have a GitHub build attestation. Verify with `gh attestation verify <file> --owner KuvopLLC`.
