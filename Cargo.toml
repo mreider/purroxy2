@@ -3,6 +3,7 @@ members = [
     "crates/desktop",
     "crates/host",
     "crates/mcp",
+    "crates/migration",
     "crates/recorder",
     "crates/reference-capability",
     "crates/registry",

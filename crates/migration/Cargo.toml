@@ -1,0 +1,27 @@
+[package]
+name = "migration"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Phase 8: v1 -> v2 capability conversion (PRD §0).
+#
+# v1 capabilities are JSON files held inside the v1 Electron app.
+# v2 capabilities are signed bundles (Phase 7). The conversion has
+# two parts:
+#   (1) Recorded steps + metadata: pure data, mapped 1:1 from v1
+#       JSON to v2 RecordingManifest. Automated, runs on first
+#       launch.
+#   (2) Host-resident logic from v1's TypeScript codebase: does NOT
+#       auto-port. Capabilities depending on v1 host behaviors that
+#       v2 default behaviors don't cover are flagged
+#       `needs review` with a specific reason.
+#
+# This crate handles (1) and surfaces (2) as `MigrationReport`.
+
+[dependencies]
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+recorder = { path = "../recorder" }
