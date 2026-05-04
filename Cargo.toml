@@ -2,6 +2,7 @@
 members = [
     "crates/desktop",
     "crates/host",
+    "crates/mcp",
     "crates/recorder",
     "crates/reference-capability",
     "crates/replay",

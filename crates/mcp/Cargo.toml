@@ -1,0 +1,25 @@
+[package]
+name = "mcp"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Phase 6: MCP server. Speaks line-delimited JSON-RPC 2.0 over stdio
+# (the transport Claude Desktop and Claude Code use for MCP). Three
+# tools mapped to the Phase 3 replay engine, gated by the Phase 5
+# AppLock so locked = refuse with a typed error.
+#
+# Hand-rolled rather than via the rmcp crate because the protocol
+# surface needed for these three tools is small and avoiding the
+# extra dep tree keeps the trusted host's dependency graph tighter
+# (PRD §9.4: shrink TCB).
+
+[dependencies]
+anyhow.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+recorder = { path = "../recorder" }
+replay = { path = "../replay" }
+security = { path = "../security" }
