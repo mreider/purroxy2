@@ -1,0 +1,25 @@
+{
+  "recording_id": "rec-synthetic",
+  "target_site": "https://example.com/",
+  "capability_name": "synthetic-navigate",
+  "bundle_version": 1,
+  "wit_version": "purroxy:capability@1.0.0",
+  "steps": [
+    {
+      "id": "step-0001",
+      "intent": {
+        "target_role": "page",
+        "target_name_pattern": null,
+        "target_text_content": null,
+        "structural_anchor_roles": [],
+        "surrounding_context": null
+      },
+      "action": {
+        "kind": "navigate",
+        "url": "https://example.com/index.html"
+      },
+      "before_snapshot_ref": "snapshots/initial.json",
+      "after_snapshot_ref": "snapshots/step-0001-after.json"
+    }
+  ]
+}
