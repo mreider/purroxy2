@@ -15,6 +15,8 @@ async fn main() -> Result<()> {
     let url = args.get(2).context("missing <url>")?.clone();
     let mut out = PathBuf::from("recording");
     let mut name = "untitled".to_string();
+    let mut auto_stop_ms: Option<u64> = None;
+    let mut headless = false;
     let mut i = 3;
     while i < args.len() {
         match args[i].as_str() {
@@ -25,6 +27,14 @@ async fn main() -> Result<()> {
             "--name" => {
                 name = args.get(i + 1).context("--name needs a value")?.clone();
                 i += 2;
+            }
+            "--auto-stop-ms" => {
+                auto_stop_ms = Some(args.get(i + 1).context("--auto-stop-ms needs a value")?.parse()?);
+                i += 2;
+            }
+            "--headless" => {
+                headless = true;
+                i += 1;
             }
             other => {
                 eprintln!("unexpected arg: {other}");
@@ -38,6 +48,8 @@ async fn main() -> Result<()> {
         output_dir: out,
         capability_name: name,
         poll_interval_ms: 250,
+        auto_stop_ms,
+        headless,
     };
     let manifest = recorder::record(opts).await?;
     println!(

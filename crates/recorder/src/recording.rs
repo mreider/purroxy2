@@ -45,25 +45,34 @@ pub struct RecorderOptions {
     pub output_dir: PathBuf,
     pub capability_name: String,
     pub poll_interval_ms: u64,
+    /// If set, the recording loop terminates after this many
+    /// milliseconds of wall-clock even without an interactive
+    /// stop signal. Used for non-interactive smoke tests.
+    pub auto_stop_ms: Option<u64>,
+    /// Run the controlled browser headless. Default for the user
+    /// flow is `false` (visible window so the user can interact);
+    /// smoke tests pass `true`.
+    pub headless: bool,
 }
 
 pub async fn record(opts: RecorderOptions) -> Result<RecordingManifest> {
     let chrome_path = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+    let mut cfg = BrowserConfig::builder().chrome_executable(chrome_path);
+    if !opts.headless {
+        cfg = cfg.with_head();
+    }
     let (mut browser, mut handler) = Browser::launch(
-        BrowserConfig::builder()
-            .chrome_executable(chrome_path)
-            .with_head()
-            .build()
+        cfg.build()
             .map_err(|e| anyhow::anyhow!("browser config: {e}"))?,
     )
     .await?;
 
     let handler_task = tokio::task::spawn(async move {
-        while let Some(h) = handler.next().await {
-            if h.is_err() {
-                break;
-            }
-        }
+        // Drain forever; the handler is what drives CDP responses
+        // back to the Browser/Page handles. Stopping it on a single
+        // event error closes the channel and breaks every CDP call
+        // that comes after.
+        while handler.next().await.is_some() {}
     });
 
     let page = browser.new_page(&opts.start_url).await?;
@@ -81,18 +90,28 @@ pub async fn record(opts: RecorderOptions) -> Result<RecordingManifest> {
     let initial = capture_snapshot(&page).await?;
     write_snapshot(&opts.output_dir, "initial", &initial)?;
 
-    let stop = tokio::spawn(async {
+    let stop_ctrl_c = tokio::spawn(async {
         let _ = signal::ctrl_c().await;
     });
-    tokio::pin!(stop);
+    tokio::pin!(stop_ctrl_c);
+
+    let auto_stop = match opts.auto_stop_ms {
+        Some(ms) => Box::pin(sleep(Duration::from_millis(ms))) as std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>,
+        None => Box::pin(std::future::pending()) as std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>,
+    };
+    tokio::pin!(auto_stop);
 
     let poll = sleep(Duration::from_millis(opts.poll_interval_ms));
     tokio::pin!(poll);
 
     loop {
         tokio::select! {
-            _ = &mut stop => {
+            _ = &mut stop_ctrl_c => {
                 println!("\n[recorder] stop signal received.");
+                break;
+            }
+            _ = &mut auto_stop => {
+                println!("\n[recorder] auto-stop reached.");
                 break;
             }
             _ = &mut poll => {

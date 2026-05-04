@@ -1,24 +1,54 @@
 // Page snapshot capture. Pulls the full accessibility tree via CDP,
-// canonicalizes it per PRD §5: nodes ordered by document position,
-// attribute keys sorted lexicographically, no host-time-of-capture,
-// no PRNG-derived fields.
+// canonicalizes it per PRD §5.
 //
-// Phase 2 scope: capture role, name, value per node from the AX tree
-// in document order. Property/attribute extraction beyond that lands
-// in followups; the canonical-serialization framing is in place so
-// adding more fields keeps the same byte-exact replay guarantee.
+// Phase 2 has two paths:
+//   - capture_snapshot_full: AX tree via Accessibility domain.
+//     Real production path. Needs Accessibility.enable; some
+//     chromiumoxide CDP error modes still tagged as "uninteresting".
+//   - capture_snapshot_minimal: url/title/viewport only, no AX
+//     tree. Always succeeds. Used while the AX path is hardened.
+//
+// The recorder uses the minimal path until full snapshots prove
+// reliable across sites; the canonical-serialization framing
+// (sorted attributes, document-position node order) is in place
+// so swapping the impl preserves byte-exact replay.
 
 use anyhow::Result;
 use chromiumoxide::Page;
-use chromiumoxide::cdp::browser_protocol::accessibility::GetFullAxTreeParams;
+use chromiumoxide::cdp::browser_protocol::accessibility::{
+    EnableParams as AxEnableParams, GetFullAxTreeParams,
+};
 
 use crate::types::{AccessibilityNode, Frame, PageSnapshot};
 
 pub async fn capture_snapshot(page: &Page) -> Result<PageSnapshot> {
+    capture_snapshot_minimal(page).await
+}
+
+pub async fn capture_snapshot_minimal(page: &Page) -> Result<PageSnapshot> {
+    let url = page.url().await?.unwrap_or_default();
+    let title = page.get_title().await?.unwrap_or_default();
+    Ok(PageSnapshot {
+        url: url.clone(),
+        title,
+        viewport: (1280, 720),
+        frames: vec![Frame {
+            id: 0,
+            parent: None,
+            url,
+        }],
+        nodes: vec![],
+        root_handle_id: 0,
+    })
+}
+
+#[allow(dead_code)]
+pub async fn capture_snapshot_full(page: &Page) -> Result<PageSnapshot> {
     let url = page.url().await?.unwrap_or_default();
     let title = page.get_title().await?.unwrap_or_default();
     let viewport = (1280u32, 720u32);
 
+    let _ = page.execute(AxEnableParams::default()).await;
     let ax = page.execute(GetFullAxTreeParams::default()).await?;
     let mut nodes = Vec::new();
     let mut root_id = 0u64;
@@ -33,7 +63,6 @@ pub async fn capture_snapshot(page: &Page) -> Result<PageSnapshot> {
         let name = ax_value_string(&n.name);
         let value = ax_value_string(&n.value);
 
-        // Properties become attributes; sort lexicographically.
         let mut attributes: Vec<(String, String)> = Vec::new();
         if let Some(props) = &n.properties {
             for p in props {
