@@ -1,0 +1,20 @@
+[package]
+name = "recorder"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Phase 2 deliverable per IMPLEMENTATION_PLAN.md: capture user
+# interactions in a controlled Chromium instance via CDP, persist
+# them as a recording (manifest + per-step canonical page snapshots)
+# that downstream phases can replay against the host. CLI binary;
+# `cargo run -p recorder -- record <url>` is the smoke entry.
+
+[dependencies]
+anyhow.workspace = true
+chromiumoxide.workspace = true
+tokio.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true
