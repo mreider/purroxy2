@@ -5,6 +5,7 @@ members = [
     "crates/mcp",
     "crates/recorder",
     "crates/reference-capability",
+    "crates/registry",
     "crates/replay",
     "crates/security",
 ]
