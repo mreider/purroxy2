@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/desktop",
     "crates/host",
     "crates/recorder",
     "crates/reference-capability",

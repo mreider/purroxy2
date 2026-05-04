@@ -1,5 +1,6 @@
 node_modules/
 dist/
+!crates/desktop/dist/
 dist-electron/
 release/
 .env
@@ -13,3 +14,6 @@ Dockerfile
 crates/**/target/
 spike/
 **/src/bindings.rs
+
+# Tauri auto-generated
+crates/desktop/gen/
