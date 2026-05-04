@@ -23,7 +23,10 @@ wasmtime::component::bindgen!({
 
 use purroxy::capability::types::{Host as TypesHost, HostPageSnapshot};
 
-const COMPONENT_PATH: &str = "target/wasm32-wasip2/release/reference_capability.wasm";
+const COMPONENT_PATH: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../target/wasm32-wasip2/release/reference_capability.wasm"
+);
 
 // In-host page snapshot model. Trivial accessibility tree: one node
 // at root with a fake title, no children. The point is to exercise
@@ -313,7 +316,7 @@ impl purroxy::capability::clock::Host for HostState {
     }
 }
 
-fn main() -> Result<()> {
+fn run_contract_pipeline(verbose: bool) -> Result<()> {
     let mut config = Config::new();
     config.wasm_component_model(true);
     let engine = Engine::new(&config)?;
@@ -328,9 +331,11 @@ fn main() -> Result<()> {
     let mut store = Store::new(&engine, HostState::new());
     let bindings = Capability::instantiate(&mut store, &component, &linker)?;
 
+    macro_rules! say { ($($t:tt)*) => { if verbose { println!($($t)*); } } }
+
     // ---- 1. metadata
     let meta = bindings.call_metadata(&mut store)?;
-    println!(
+    say!(
         "[1] metadata: name={:?} site={:?} budget.fuel={}",
         meta.name, meta.target_site_pattern, meta.budget.max_fuel
     );
@@ -346,20 +351,20 @@ fn main() -> Result<()> {
     };
     let validated = bindings.call_validate_params(&mut store, &params)?;
     let validated = validated.expect("validate-params should accept");
-    println!("[2] validate-params: {} entries", validated.entries.len());
+    say!("[2] validate-params: {} entries", validated.entries.len());
 
     // ---- 3. preflight
     let snap = store.data_mut().table.push(SnapshotState::fake())?;
     let pre = bindings.call_preflight(&mut store, "step-1", snap)?;
     pre.expect("preflight should pass");
-    println!("[3] preflight: ok");
+    say!("[3] preflight: ok");
 
     // ---- 4. postflight
     let before = store.data_mut().table.push(SnapshotState::fake())?;
     let after = store.data_mut().table.push(SnapshotState::fake())?;
     let post = bindings.call_postflight(&mut store, "step-1", before, after)?;
     post.expect("postflight should pass");
-    println!("[4] postflight: ok");
+    say!("[4] postflight: ok");
 
     // ---- 5. score-repair-candidates
     use purroxy::capability::types::StepIntent;
@@ -377,7 +382,7 @@ fn main() -> Result<()> {
     ];
     let snap2 = store.data_mut().table.push(SnapshotState::fake())?;
     let scored = bindings.call_score_repair_candidates(&mut store, "step-1", &intent, &cands, snap2)?;
-    println!(
+    say!(
         "[5] score-repair-candidates: {} scored, top={:.2} ({})",
         scored.len(),
         scored[0].score,
@@ -389,7 +394,7 @@ fn main() -> Result<()> {
     let snap3 = store.data_mut().table.push(SnapshotState::fake())?;
     let extracted = bindings.call_extract(&mut store, snap3)?;
     let extracted = extracted.expect("extract should succeed");
-    println!(
+    say!(
         "[6] extract: {} fields, first={:?}",
         extracted.fields.len(),
         extracted.fields[0].name
@@ -413,12 +418,26 @@ fn main() -> Result<()> {
     };
     let redacted = bindings.call_redact(&mut store, &with_secret)?;
     let secret = &redacted.fields[1];
-    println!(
+    say!(
         "[7] redact: ssn.value = {:?} (sensitive={})",
         secret.value, secret.sensitive
     );
     assert!(matches!(secret.value, ParamValue::None));
 
-    println!("\nAll 7 exports of purroxy:capability/v1 round-tripped against the reference component.");
+    say!("\nAll 7 exports of purroxy:capability/v1 round-tripped against the reference component.");
     Ok(())
+}
+
+fn main() -> Result<()> {
+    run_contract_pipeline(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn contract_pipeline_round_trips_against_reference_component() {
+        run_contract_pipeline(false).expect("every export should round-trip");
+    }
 }
