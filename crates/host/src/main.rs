@@ -316,7 +316,7 @@ impl purroxy::capability::clock::Host for HostState {
     }
 }
 
-fn run_contract_pipeline(verbose: bool) -> Result<()> {
+fn build_harness() -> Result<(Store<HostState>, Capability)> {
     let mut config = Config::new();
     config.wasm_component_model(true);
     let engine = Engine::new(&config)?;
@@ -330,6 +330,11 @@ fn run_contract_pipeline(verbose: bool) -> Result<()> {
 
     let mut store = Store::new(&engine, HostState::new());
     let bindings = Capability::instantiate(&mut store, &component, &linker)?;
+    Ok((store, bindings))
+}
+
+fn run_contract_pipeline(verbose: bool) -> Result<()> {
+    let (mut store, bindings) = build_harness()?;
 
     macro_rules! say { ($($t:tt)*) => { if verbose { println!($($t)*); } } }
 
@@ -435,9 +440,127 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use purroxy::capability::types::{
+        OutputField, ParamEntry, ParamSet, ParamValue, StepIntent,
+    };
 
     #[test]
     fn contract_pipeline_round_trips_against_reference_component() {
         run_contract_pipeline(false).expect("every export should round-trip");
+    }
+
+    // ---- Fuzz-style tests: throw varied inputs at exports, assert
+    // no host-side panics, no traps, and basic invariants hold. Not
+    // a real fuzzer (no random input generator); a smoke test across
+    // the obvious shape variants.
+
+    fn deterministic_strings() -> Vec<String> {
+        vec![
+            String::new(),
+            "a".into(),
+            "hello world".into(),
+            "with\0null".into(),
+            "🎉 emoji 🚀".into(),
+            "\n\r\t whitespace ".into(),
+            "x".repeat(10_000),
+        ]
+    }
+
+    #[test]
+    fn validate_params_handles_diverse_shapes() {
+        let (mut store, bindings) = build_harness().unwrap();
+        let cases = vec![
+            ParamSet { entries: vec![] },
+            ParamSet {
+                entries: deterministic_strings()
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, s)| ParamEntry {
+                        name: format!("p{i}"),
+                        value: ParamValue::StringVal(s),
+                    })
+                    .collect(),
+            },
+            ParamSet {
+                entries: vec![
+                    ParamEntry { name: "n".into(), value: ParamValue::None },
+                    ParamEntry { name: "b".into(), value: ParamValue::BoolVal(true) },
+                    ParamEntry { name: "i".into(), value: ParamValue::S64Val(i64::MIN) },
+                    ParamEntry { name: "j".into(), value: ParamValue::S64Val(i64::MAX) },
+                    ParamEntry { name: "f".into(), value: ParamValue::F64Val(f64::INFINITY) },
+                    ParamEntry { name: "g".into(), value: ParamValue::F64Val(f64::NAN) },
+                ],
+            },
+        ];
+        for case in cases {
+            let result = bindings.call_validate_params(&mut store, &case)
+                .expect("call should succeed");
+            assert!(result.is_ok(), "reference accepts every input");
+        }
+    }
+
+    #[test]
+    fn score_repair_candidates_handles_empty_and_long_lists() {
+        let (mut store, bindings) = build_harness().unwrap();
+        let intent = StepIntent {
+            target_role: "button".into(),
+            target_name_pattern: None,
+            target_text_content: None,
+            structural_anchor_roles: vec![],
+            surrounding_context: None,
+        };
+        for n in [0usize, 1, 3, 10, 100] {
+            let snap = store.data_mut().table.push(SnapshotState::fake()).unwrap();
+            let cands: Vec<_> = (0..n).map(|i| ElementHandle { id: i as u64 }).collect();
+            let scored = bindings
+                .call_score_repair_candidates(&mut store, "step", &intent, &cands, snap)
+                .expect("call should succeed");
+            assert_eq!(
+                scored.len(),
+                n,
+                "reference scorer returns one score per candidate"
+            );
+        }
+    }
+
+    #[test]
+    fn redact_strips_every_sensitive_field() {
+        let (mut store, bindings) = build_harness().unwrap();
+        let cases = vec![
+            purroxy::capability::types::Output { fields: vec![] },
+            purroxy::capability::types::Output {
+                fields: vec![
+                    OutputField { name: "a".into(), value: ParamValue::StringVal("x".into()), sensitive: false },
+                    OutputField { name: "b".into(), value: ParamValue::StringVal("secret".into()), sensitive: true },
+                    OutputField { name: "c".into(), value: ParamValue::S64Val(42), sensitive: true },
+                    OutputField { name: "d".into(), value: ParamValue::None, sensitive: true },
+                ],
+            },
+        ];
+        for case in cases {
+            let redacted = bindings.call_redact(&mut store, &case)
+                .expect("call should succeed");
+            for field in &redacted.fields {
+                if field.sensitive {
+                    assert!(
+                        matches!(field.value, ParamValue::None),
+                        "field {:?} marked sensitive must redact to None",
+                        field.name
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn metadata_is_self_consistent() {
+        let (mut store, bindings) = build_harness().unwrap();
+        let m = bindings.call_metadata(&mut store).expect("call should succeed");
+        assert!(!m.name.is_empty(), "name required");
+        assert!(!m.target_site_pattern.is_empty(), "site pattern required");
+        assert!(m.budget.max_fuel > 0, "fuel budget must be positive");
+        assert!(m.budget.max_memory_bytes > 0, "memory budget must be positive");
+        assert!(m.budget.max_wall_clock_ms > 0, "wall clock budget must be positive");
+        assert_eq!(m.target_wit_version, "purroxy:capability@1.0.0");
     }
 }
