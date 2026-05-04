@@ -169,20 +169,20 @@ The plan ships an internally usable tool by end of Phase 3 (command-line replay+
 
 ---
 
-## Phase 8 — v1→v2 conversion + ship polish (3–4 weeks)
+## Phase 8 — Ship polish (2–3 weeks)
 
 **Goal.** Ship-ready v2.0 release candidate.
 
 **Work.**
-- v1 JSON → v2 manifest converter. Reads v1 capability files, emits v2 manifests with stub WASM components.
-- First-launch migration wizard: reads v1 install, converts capabilities, surfaces any that depended on v1 host-resident logic the v2 default behaviors don't cover (PRD §0). Marks unconvertible capabilities `needs review`.
-- Default v2 host behaviors that cover the common patterns v1 host code used for. Concretely: enumerate the v1 host functions that v1 capabilities effectively depended on, port the common ones into the v2 host as defaults invoked when a stub component's exports are unimplemented.
-- Auto-update channel: differential updates required (host binary deltas + Chromium deltas). Use a delta tool such as `bsdiff` or platform-native equivalents.
+- Auto-update channel: differential updates (host binary deltas + Chromium deltas). Use `bsdiff` or platform-native equivalents.
 - Landing page + docs updated to reflect v2.0. `gh attestation verify` instructions still work; the verification command does not change.
+- Code signing + notarization wired into release CI for macOS / Windows / Linux.
+
+**Not in scope.** v1→v2 capability migration. v0.1.0 shipped without acquiring users before the architecture pivot, so v2.0 ships into a clean install for everyone. If users ever land on v0.1.x before v2.0 ships, a converter crate gets reintroduced.
 
 **Deliverable.** Tagged v2.0 release candidate.
 
-**Gate to Phase 9.** v2.0 RC installs cleanly on a fresh machine on each platform; converts a v1 install in place without losing any healthy capability.
+**Gate to Phase 9.** v2.0 RC installs cleanly on a fresh machine on each platform.
 
 ---
 
@@ -212,7 +212,7 @@ The plan ships an internally usable tool by end of Phase 3 (command-line replay+
 | 5 → 6 | Security regression tests pass; manual code path review done |
 | 6 → 7 | MCP round-trip with Claude works on all three platforms |
 | 7 → 8 | Community library round-trip works between two test users |
-| 8 → 9 | v2.0 RC installs and converts v1 cleanly on a fresh machine |
+| 8 → 9 | v2.0 RC installs cleanly on a fresh machine each platform |
 
 ---
 
@@ -225,7 +225,7 @@ The plan ships an internally usable tool by end of Phase 3 (command-line replay+
 - **Phase 5 inside the build phases**, not at the end, because security primitives gate UI flows that need them (vault management UI, signing-key onboarding).
 - **Phase 6 (MCP) before Phase 7 (community library)** because internal AI integration validates the run-time path; the community library adds publishing/distribution on top of a known-working run.
 - **Phase 7 last among build phases** because the community library is leverage but not gating for first ship: you can ship v2.0 and add the library a week later without breaking users.
-- **Phase 8 dedicated to migration** because it is the difference between users upgrading and users staying on v1 forever. Underestimated in most rewrites.
+- **Phase 8 ship polish only** because v0.1.0 has no users to migrate (see Phase 8 "Not in scope"). The slot stays in the plan as the release-engineering pass before beta.
 
 ---
 
