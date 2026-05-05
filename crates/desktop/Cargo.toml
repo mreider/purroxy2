@@ -16,9 +16,14 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 anyhow.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["process", "io-util"] }
 serde.workspace = true
 serde_json.workspace = true
 tauri = { version = "2", features = [] }
 recorder = { path = "../recorder" }
 replay = { path = "../replay" }
+registry = { path = "../registry" }
+security = { path = "../security" }
+libc = "0.2"
+rfd = { version = "0.14", default-features = false, features = ["xdg-portal", "tokio"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }

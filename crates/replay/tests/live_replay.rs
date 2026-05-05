@@ -31,6 +31,7 @@ async fn run_fixture(name: &str) -> replay::RunRecord {
         component_path: component_path(),
         headless: true,
         run_record_path: Some(run_record_path),
+        event_tx: None,
     };
 
     replay::replay(opts).await.expect("replay should succeed")

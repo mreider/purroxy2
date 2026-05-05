@@ -34,6 +34,8 @@ pub struct StepOutcome {
     pub postflight: ExportOutcome,
     pub repaired: bool,
     pub action_executed: bool,
+    #[serde(default)]
+    pub duration_ms: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

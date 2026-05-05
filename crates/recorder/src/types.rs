@@ -12,7 +12,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RecordingManifest {
     pub recording_id: String,
     pub target_site: String,
@@ -22,7 +22,7 @@ pub struct RecordingManifest {
     pub steps: Vec<RecordedStep>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RecordedStep {
     pub id: String,
     pub intent: StepIntent,

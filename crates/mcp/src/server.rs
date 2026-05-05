@@ -150,6 +150,7 @@ impl Server {
             component_path: self.component_path.clone(),
             headless: true,
             run_record_path: None,
+            event_tx: None,
         };
         replay::replay(opts)
             .await

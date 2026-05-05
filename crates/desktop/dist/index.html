@@ -1,68 +1,25 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Purroxy v2.0</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 16px; background: #f5f5f7; color: #1d1d1f; }
-    h1 { margin: 0 0 16px; font-size: 18px; }
-    .status { color: #86868b; font-size: 13px; margin-bottom: 16px; }
-    .row { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: white; border-radius: 8px; margin-bottom: 6px; }
-    .row .name { flex: 1; font-weight: 500; }
-    .row .meta { color: #86868b; font-size: 12px; margin-right: 12px; }
-    button { background: #007aff; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-    button:disabled { background: #c7c7cc; cursor: not-allowed; }
-    pre { background: white; padding: 12px; border-radius: 8px; font-size: 12px; overflow: auto; max-height: 400px; }
-    .error { color: #d70015; }
-  </style>
+<meta charset="utf-8" />
+<title>Purroxy</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="app.css" />
 </head>
 <body>
-  <h1>Purroxy capabilities</h1>
-  <div class="status" id="status">loading…</div>
-  <div id="list"></div>
-  <h1 style="margin-top: 24px">Last run record</h1>
-  <pre id="run">no run yet</pre>
+<div id="root"></div>
 
-  <script>
-    const invoke = window.__TAURI__.core.invoke;
+<script src="vendor/react.production.min.js"></script>
+<script src="vendor/react-dom.production.min.js"></script>
+<script src="vendor/babel.min.js"></script>
 
-    async function refresh() {
-      const list = document.getElementById('list');
-      const status = document.getElementById('status');
-      try {
-        const items = await invoke('list_capabilities');
-        status.textContent = items.length + ' capability fixtures';
-        list.innerHTML = '';
-        for (const item of items) {
-          const row = document.createElement('div');
-          row.className = 'row';
-          row.innerHTML = `
-            <div class="name">${item.name}</div>
-            <div class="meta">${item.steps} steps · ${item.target_site}</div>
-            <button data-name="${item.name}">Run</button>
-          `;
-          row.querySelector('button').addEventListener('click', async (e) => {
-            const name = e.target.dataset.name;
-            e.target.disabled = true;
-            e.target.textContent = 'running…';
-            try {
-              const record = await invoke('run_capability', { name });
-              document.getElementById('run').textContent = JSON.stringify(record, null, 2);
-              e.target.textContent = 'Run';
-            } catch (err) {
-              document.getElementById('run').innerHTML = '<span class="error">' + err + '</span>';
-              e.target.textContent = 'Run';
-            } finally {
-              e.target.disabled = false;
-            }
-          });
-          list.appendChild(row);
-        }
-      } catch (err) {
-        status.innerHTML = '<span class="error">' + err + '</span>';
-      }
-    }
-    refresh();
-  </script>
+<script src="data.js"></script>
+<script src="ipc.js"></script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="chrome.jsx"></script>
+<script type="text/babel" src="library.jsx"></script>
+<script type="text/babel" src="wizard.jsx"></script>
+<script type="text/babel" src="detail.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
 </body>
 </html>

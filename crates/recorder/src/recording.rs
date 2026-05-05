@@ -53,11 +53,67 @@ pub struct RecorderOptions {
     /// flow is `false` (visible window so the user can interact);
     /// smoke tests pass `true`.
     pub headless: bool,
+    /// When true, emit machine-readable NDJSON events on stdout
+    /// (one JSON object per line). Used by the desktop app to
+    /// drive live progress UI. Human-readable status messages go
+    /// to stderr in this mode.
+    pub emit_events: bool,
+}
+
+fn iso_now() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let d = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
+    format!(
+        "{}.{:03}Z-epoch",
+        d.as_secs(),
+        d.subsec_millis()
+    )
+}
+
+fn emit(enabled: bool, ev: serde_json::Value) {
+    if !enabled {
+        return;
+    }
+    if let Ok(s) = serde_json::to_string(&ev) {
+        println!("{s}");
+    }
+}
+
+fn say(events: bool, msg: impl AsRef<str>) {
+    if events {
+        eprintln!("{}", msg.as_ref());
+    } else {
+        println!("{}", msg.as_ref());
+    }
+}
+
+#[cfg(unix)]
+async fn wait_for_sigterm() {
+    use tokio::signal::unix::{signal, SignalKind};
+    match signal(SignalKind::terminate()) {
+        Ok(mut s) => {
+            s.recv().await;
+        }
+        Err(_) => std::future::pending::<()>().await,
+    }
+}
+
+#[cfg(not(unix))]
+async fn wait_for_sigterm() {
+    std::future::pending::<()>().await;
 }
 
 pub async fn record(opts: RecorderOptions) -> Result<RecordingManifest> {
-    let chrome_path = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-    let mut cfg = BrowserConfig::builder().chrome_executable(chrome_path);
+    let chrome_path = std::env::var("PURROXY_CHROME").unwrap_or_else(|_| {
+        if cfg!(target_os = "macos") {
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome".into()
+        } else if cfg!(target_os = "windows") {
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe".into()
+        } else {
+            "google-chrome".into()
+        }
+    });
+    let mut cfg = BrowserConfig::builder().chrome_executable(&chrome_path);
     if !opts.headless {
         cfg = cfg.with_head();
     }
@@ -79,21 +135,40 @@ pub async fn record(opts: RecorderOptions) -> Result<RecordingManifest> {
     page.evaluate_on_new_document(SHIM_JS).await?;
     page.evaluate(SHIM_JS).await.ok(); // also install on already-loaded page
 
-    println!("[recorder] recording {} -> {}", opts.start_url, opts.output_dir.display());
-    println!("[recorder] interact with the page; press Ctrl+C to finish.");
+    say(opts.emit_events, format!("[recorder] recording {} -> {}", opts.start_url, opts.output_dir.display()));
+    say(opts.emit_events, "[recorder] interact with the page; press Ctrl+C to finish.");
 
     std::fs::create_dir_all(&opts.output_dir)?;
 
+    let recording_id = format!("rec-{}", random_suffix());
     let mut steps: Vec<RecordedStep> = Vec::new();
     let mut last_step_id: u64 = 0;
     let mut last_snapshot_ref = "snapshots/initial.json".to_string();
     let initial = capture_snapshot(&page).await?;
     write_snapshot(&opts.output_dir, "initial", &initial)?;
 
+    let manifest_path = opts.output_dir.join("manifest.json");
+    // Write empty manifest immediately so a hard kill mid-recording
+    // still leaves a parseable file in the library dir.
+    persist_manifest(&manifest_path, &recording_id, &opts.start_url, &opts.capability_name, &steps)?;
+
+    emit(opts.emit_events, serde_json::json!({
+        "v": 1,
+        "event": "started",
+        "at": iso_now(),
+        "recording_id": recording_id,
+        "start_url": opts.start_url,
+        "capability_name": opts.capability_name,
+        "output_dir": opts.output_dir.to_string_lossy(),
+    }));
+
     let stop_ctrl_c = tokio::spawn(async {
         let _ = signal::ctrl_c().await;
     });
     tokio::pin!(stop_ctrl_c);
+
+    let stop_term = tokio::spawn(async { wait_for_sigterm().await; });
+    tokio::pin!(stop_term);
 
     let auto_stop = match opts.auto_stop_ms {
         Some(ms) => Box::pin(sleep(Duration::from_millis(ms))) as std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>,
@@ -104,15 +179,19 @@ pub async fn record(opts: RecorderOptions) -> Result<RecordingManifest> {
     let poll = sleep(Duration::from_millis(opts.poll_interval_ms));
     tokio::pin!(poll);
 
-    loop {
+    let stop_reason: &'static str = loop {
         tokio::select! {
             _ = &mut stop_ctrl_c => {
-                println!("\n[recorder] stop signal received.");
-                break;
+                say(opts.emit_events, "\n[recorder] stop signal received.");
+                break "ctrl_c";
+            }
+            _ = &mut stop_term => {
+                say(opts.emit_events, "\n[recorder] SIGTERM received.");
+                break "sigterm";
             }
             _ = &mut auto_stop => {
-                println!("\n[recorder] auto-stop reached.");
-                break;
+                say(opts.emit_events, "\n[recorder] auto-stop reached.");
+                break "auto_stop";
             }
             _ = &mut poll => {
                 let new_events = drain_events(&page).await?;
@@ -155,39 +234,88 @@ pub async fn record(opts: RecorderOptions) -> Result<RecordingManifest> {
                     });
                     last_snapshot_ref = after_ref;
                     last_step_id += 1;
-                    if let Some(t) = &steps.last().unwrap().intent.target_name_pattern {
+                    let pushed = steps.last().unwrap();
+                    let intent_name = pushed.intent.target_name_pattern.clone();
+                    if opts.emit_events {
+                        emit(true, serde_json::json!({
+                            "v": 1,
+                            "event": "step",
+                            "at": iso_now(),
+                            "recording_id": recording_id,
+                            "step_id": step_id_s,
+                            "step_index": steps.len(),
+                            "kind": ev.kind,
+                            "intent": {
+                                "role": pushed.intent.target_role,
+                                "name": intent_name.clone(),
+                            },
+                        }));
+                    } else if let Some(t) = &intent_name {
                         println!("[recorder] step {step_id_s} {kind} target=\"{t}\"", kind = ev.kind);
                     } else {
                         println!("[recorder] step {step_id_s} {kind}", kind = ev.kind);
                     }
+                    // Persist after every step so a kill leaves a usable file.
+                    persist_manifest(&manifest_path, &recording_id, &opts.start_url, &opts.capability_name, &steps)?;
                 }
                 poll.set(sleep(Duration::from_millis(opts.poll_interval_ms)));
             }
         }
-    }
+    };
 
     let manifest = RecordingManifest {
-        recording_id: format!("rec-{}", random_suffix()),
+        recording_id: recording_id.clone(),
         target_site: opts.start_url.clone(),
-        capability_name: opts.capability_name,
+        capability_name: opts.capability_name.clone(),
         bundle_version: 1,
         wit_version: "purroxy:capability@1.0.0".into(),
         steps,
     };
 
-    let manifest_path = opts.output_dir.join("manifest.json");
     let json = serde_json::to_string_pretty(&manifest)?;
     std::fs::write(&manifest_path, json)?;
-    println!(
-        "[recorder] wrote {} steps -> {}",
-        manifest.steps.len(),
-        manifest_path.display()
+    say(
+        opts.emit_events,
+        format!(
+            "[recorder] wrote {} steps -> {}",
+            manifest.steps.len(),
+            manifest_path.display()
+        ),
     );
+    emit(opts.emit_events, serde_json::json!({
+        "v": 1,
+        "event": "finished",
+        "at": iso_now(),
+        "recording_id": recording_id,
+        "stop_reason": stop_reason,
+        "steps": manifest.steps.len(),
+        "manifest_path": manifest_path.to_string_lossy(),
+    }));
 
     let _ = browser.close().await;
     let _ = browser.wait().await;
     handler_task.abort();
     Ok(manifest)
+}
+
+fn persist_manifest(
+    path: &Path,
+    recording_id: &str,
+    start_url: &str,
+    capability_name: &str,
+    steps: &[RecordedStep],
+) -> Result<()> {
+    let manifest = RecordingManifest {
+        recording_id: recording_id.to_string(),
+        target_site: start_url.to_string(),
+        capability_name: capability_name.to_string(),
+        bundle_version: 1,
+        wit_version: "purroxy:capability@1.0.0".into(),
+        steps: steps.to_vec(),
+    };
+    let json = serde_json::to_string_pretty(&manifest)?;
+    std::fs::write(path, json)?;
+    Ok(())
 }
 
 async fn drain_events(page: &Page) -> Result<Vec<ShimEvent>> {

@@ -41,6 +41,7 @@ async fn main() -> Result<()> {
         component_path: component_path.context("--component is required")?,
         headless,
         run_record_path: out,
+        event_tx: None,
     };
     let record = replay::replay(opts).await?;
     println!(

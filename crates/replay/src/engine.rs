@@ -137,6 +137,47 @@ pub struct ReplayOptions {
     pub component_path: PathBuf,
     pub headless: bool,
     pub run_record_path: Option<PathBuf>,
+    /// Optional progress channel. When set, the engine sends events
+    /// (started, step-completed, finished) so a host can drive a live
+    /// progress UI while the replay runs.
+    pub event_tx: Option<tokio::sync::mpsc::UnboundedSender<ReplayEvent>>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ReplayEvent {
+    Started {
+        recording_id: String,
+        total_steps: usize,
+    },
+    Step {
+        step_id: String,
+        step_index: usize,
+        action: String,
+        intent_role: Option<String>,
+        intent_name: Option<String>,
+        executed: bool,
+        repaired: bool,
+        duration_ms: u64,
+    },
+    Finished {
+        outcome: String,
+        reason: Option<String>,
+    },
+}
+
+fn emit(tx: &Option<tokio::sync::mpsc::UnboundedSender<ReplayEvent>>, ev: ReplayEvent) {
+    if let Some(tx) = tx {
+        let _ = tx.send(ev);
+    }
+}
+
+fn action_kind_label(a: &ActionKind) -> &'static str {
+    match a {
+        ActionKind::Click { .. } => "click",
+        ActionKind::Input { .. } => "input",
+        ActionKind::Navigate { .. } => "navigate",
+    }
 }
 
 pub async fn replay(opts: ReplayOptions) -> Result<RunRecord> {
@@ -144,6 +185,11 @@ pub async fn replay(opts: ReplayOptions) -> Result<RunRecord> {
     let raw = std::fs::read_to_string(&manifest_path)
         .with_context(|| format!("reading {}", manifest_path.display()))?;
     let manifest: RecordingManifest = serde_json::from_str(&raw)?;
+
+    emit(&opts.event_tx, ReplayEvent::Started {
+        recording_id: manifest.recording_id.clone(),
+        total_steps: manifest.steps.len(),
+    });
 
     let (mut store, bindings) = init_component(&opts.component_path)?;
 
@@ -154,7 +200,15 @@ pub async fn replay(opts: ReplayOptions) -> Result<RunRecord> {
         .map_err(|e| anyhow::anyhow!("validate-params rejected: {e:?}"))?;
 
     // 2. launch browser, navigate to start.
-    let chrome_path = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+    let chrome_path = std::env::var("PURROXY_CHROME").unwrap_or_else(|_| {
+        if cfg!(target_os = "macos") {
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome".into()
+        } else if cfg!(target_os = "windows") {
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe".into()
+        } else {
+            "google-chrome".into()
+        }
+    });
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
@@ -186,7 +240,8 @@ pub async fn replay(opts: ReplayOptions) -> Result<RunRecord> {
     let mut outcome = RunOutcome::Success;
 
     // 3. iterate steps.
-    for step in &manifest.steps {
+    for (step_idx, step) in manifest.steps.iter().enumerate() {
+        let step_start = Instant::now();
         let live_before = recorder::snapshot::capture_snapshot(&page).await?;
         let before_res = store
             .data_mut()
@@ -206,6 +261,7 @@ pub async fn replay(opts: ReplayOptions) -> Result<RunRecord> {
                 postflight: ExportOutcome::Skipped,
                 repaired: false,
                 action_executed: false,
+                duration_ms: step_start.elapsed().as_millis() as u64,
             });
             outcome = RunOutcome::NeedsReview {
                 reason: "preflight failed".into(),
@@ -279,12 +335,24 @@ pub async fn replay(opts: ReplayOptions) -> Result<RunRecord> {
             },
         };
         let post_failed = matches!(post, ExportOutcome::Err { .. });
+        let step_duration_ms = step_start.elapsed().as_millis() as u64;
         step_outcomes.push(StepOutcome {
             step_id: step.id.clone(),
             preflight: pre,
             postflight: post,
             repaired,
             action_executed,
+            duration_ms: step_duration_ms,
+        });
+        emit(&opts.event_tx, ReplayEvent::Step {
+            step_id: step.id.clone(),
+            step_index: step_idx + 1,
+            action: action_kind_label(&step.action).to_string(),
+            intent_role: Some(step.intent.target_role.clone()),
+            intent_name: step.intent.target_name_pattern.clone(),
+            executed: action_executed,
+            repaired,
+            duration_ms: step_duration_ms,
         });
         if post_failed {
             outcome = RunOutcome::NeedsReview {
@@ -321,6 +389,16 @@ pub async fn replay(opts: ReplayOptions) -> Result<RunRecord> {
     let _ = browser.close().await;
     let _ = browser.wait().await;
     handler_task.abort();
+
+    let (outcome_label, outcome_reason): (&str, Option<String>) = match &outcome {
+        RunOutcome::Success => ("success", None),
+        RunOutcome::NeedsReview { reason, .. } => ("needs_review", Some(reason.clone())),
+        RunOutcome::Aborted { reason } => ("aborted", Some(reason.clone())),
+    };
+    emit(&opts.event_tx, ReplayEvent::Finished {
+        outcome: outcome_label.to_string(),
+        reason: outcome_reason,
+    });
 
     let ended_at_ms = epoch_ms();
     let record = RunRecord {

@@ -17,6 +17,7 @@ async fn main() -> Result<()> {
     let mut name = "untitled".to_string();
     let mut auto_stop_ms: Option<u64> = None;
     let mut headless = false;
+    let mut emit_events = false;
     let mut i = 3;
     while i < args.len() {
         match args[i].as_str() {
@@ -36,6 +37,18 @@ async fn main() -> Result<()> {
                 headless = true;
                 i += 1;
             }
+            "--events" => {
+                let val = args.get(i + 1).context("--events needs a value")?;
+                match val.as_str() {
+                    "ndjson" => emit_events = true,
+                    "none" => emit_events = false,
+                    other => {
+                        eprintln!("unknown --events value: {other} (expected 'ndjson' or 'none')");
+                        std::process::exit(2);
+                    }
+                }
+                i += 2;
+            }
             other => {
                 eprintln!("unexpected arg: {other}");
                 std::process::exit(2);
@@ -50,12 +63,37 @@ async fn main() -> Result<()> {
         poll_interval_ms: 250,
         auto_stop_ms,
         headless,
+        emit_events,
     };
-    let manifest = recorder::record(opts).await?;
-    println!(
-        "[recorder] done. recording_id={} steps={}",
-        manifest.recording_id,
-        manifest.steps.len()
-    );
-    Ok(())
+    match recorder::record(opts).await {
+        Ok(manifest) => {
+            if emit_events {
+                eprintln!(
+                    "[recorder] done. recording_id={} steps={}",
+                    manifest.recording_id,
+                    manifest.steps.len()
+                );
+            } else {
+                println!(
+                    "[recorder] done. recording_id={} steps={}",
+                    manifest.recording_id,
+                    manifest.steps.len()
+                );
+            }
+            Ok(())
+        }
+        Err(err) => {
+            if emit_events {
+                let payload = serde_json::json!({
+                    "v": 1,
+                    "event": "error",
+                    "message": err.to_string(),
+                });
+                if let Ok(s) = serde_json::to_string(&payload) {
+                    println!("{s}");
+                }
+            }
+            Err(err)
+        }
+    }
 }
